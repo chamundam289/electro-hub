@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Search, Eye, ArrowLeft, Trash2 } from 'lucide-react';
+import { Plus, Search, Eye, ArrowLeft, Trash2, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SalesReturn {
@@ -284,6 +284,42 @@ export default function SalesReturns() {
     }
   };
 
+  const handleEditReturn = (returnItem: SalesReturn) => {
+    // For now, show a message that editing is not implemented
+    // In a full implementation, you would populate the form with return data
+    toast.info('Edit functionality will be implemented in the next update');
+  };
+
+  const handleDeleteReturn = async (returnId: string) => {
+    if (!confirm('Are you sure you want to delete this return? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // First delete return items
+      const { error: itemsError } = await supabase
+        .from('sales_return_items')
+        .delete()
+        .eq('sales_return_id', returnId);
+
+      if (itemsError) throw itemsError;
+
+      // Then delete the return
+      const { error: returnError } = await supabase
+        .from('sales_returns')
+        .delete()
+        .eq('id', returnId);
+
+      if (returnError) throw returnError;
+
+      toast.success('Sales return deleted successfully');
+      fetchReturns();
+    } catch (error) {
+      console.error('Error deleting return:', error);
+      toast.error('Failed to delete return');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       original_order_id: '',
@@ -465,6 +501,59 @@ export default function SalesReturns() {
         </Dialog>
       </div>
 
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Returns</CardTitle>
+            <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{returns.length}</div>
+            <p className="text-xs text-muted-foreground">All time returns</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <ArrowLeft className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {returns.filter(ret => ret.refund_status === 'pending').length}
+            </div>
+            <p className="text-xs text-muted-foreground">Awaiting refund</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
+            <ArrowLeft className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {returns.filter(ret => ret.refund_status === 'completed').length}
+            </div>
+            <p className="text-xs text-muted-foreground">Refund completed</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cancelled</CardTitle>
+            <ArrowLeft className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {returns.filter(ret => ret.refund_status === 'cancelled').length}
+            </div>
+            <p className="text-xs text-muted-foreground">Cancelled returns</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Filters */}
       <Card>
         <CardHeader>
@@ -533,13 +622,29 @@ export default function SalesReturns() {
                         </Badge>
                       </td>
                       <td className="p-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewReturn(returnItem)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewReturn(returnItem)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditReturn(returnItem)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteReturn(returnItem.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

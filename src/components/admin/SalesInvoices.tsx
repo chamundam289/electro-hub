@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DataPagination } from '@/components/ui/data-pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Eye, Printer, Download, Filter, Calendar } from 'lucide-react';
+import { Search, Eye, Printer, Download, Filter, Calendar, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -94,6 +96,42 @@ export default function SalesInvoices() {
       setIsViewDialogOpen(true);
     } catch (error) {
       toast.error('Failed to fetch order details');
+    }
+  };
+
+  const handleEditOrder = (order: Order) => {
+    // For now, show a message that editing is not implemented
+    // In a full implementation, you would open an edit dialog
+    toast.info('Edit functionality will be implemented in the next update');
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // First delete order items
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .delete()
+        .eq('order_id', orderId);
+
+      if (itemsError) throw itemsError;
+
+      // Then delete the order
+      const { error: orderError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (orderError) throw orderError;
+
+      toast.success('Invoice deleted successfully');
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      toast.error('Failed to delete invoice');
     }
   };
 
@@ -235,37 +273,50 @@ export default function SalesInvoices() {
     }
   };
 
-  const filteredOrders = orders.filter(order => {
-    const customerName = order.customers?.name || order.customer_name || '';
-    const invoiceNumber = order.invoice_number || order.id.slice(0, 8);
-    
-    const matchesSearch = invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customerName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    const matchesPaymentStatus = paymentStatusFilter === 'all' || order.payment_status === paymentStatusFilter;
-    
-    let matchesDate = true;
-    if (dateRange !== 'all') {
-      const orderDate = new Date(order.created_at);
-      const today = new Date();
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      const customerName = order.customers?.name || order.customer_name || '';
+      const invoiceNumber = order.invoice_number || order.id.slice(0, 8);
       
-      switch (dateRange) {
-        case 'today':
-          matchesDate = orderDate.toDateString() === today.toDateString();
-          break;
-        case 'week':
-          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-          matchesDate = orderDate >= weekAgo;
-          break;
-        case 'month':
-          const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-          matchesDate = orderDate >= monthAgo;
-          break;
+      const matchesSearch = invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           customerName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+      const matchesPaymentStatus = paymentStatusFilter === 'all' || order.payment_status === paymentStatusFilter;
+      
+      let matchesDate = true;
+      if (dateRange !== 'all') {
+        const orderDate = new Date(order.created_at);
+        const today = new Date();
+        
+        switch (dateRange) {
+          case 'today':
+            matchesDate = orderDate.toDateString() === today.toDateString();
+            break;
+          case 'week':
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            matchesDate = orderDate >= weekAgo;
+            break;
+          case 'month':
+            const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            matchesDate = orderDate >= monthAgo;
+            break;
+        }
       }
-    }
-    
-    return matchesSearch && matchesStatus && matchesPaymentStatus && matchesDate;
+      
+      return matchesSearch && matchesStatus && matchesPaymentStatus && matchesDate;
+    });
+  }, [orders, searchTerm, statusFilter, paymentStatusFilter, dateRange]);
+
+  const pagination = usePagination({
+    totalItems: filteredOrders.length,
+    itemsPerPage: 30,
   });
+
+  const paginatedOrders = useMemo(() => {
+    const startIndex = pagination.startIndex;
+    const endIndex = pagination.endIndex;
+    return filteredOrders.slice(startIndex, endIndex);
+  }, [filteredOrders, pagination.startIndex, pagination.endIndex]);
 
   return (
     <div className="space-y-6">
@@ -275,6 +326,59 @@ export default function SalesInvoices() {
           <Download className="h-4 w-4 mr-2" />
           Export CSV
         </Button>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{orders.length}</div>
+            <p className="text-xs text-muted-foreground">All time invoices</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Calendar className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {orders.filter(order => order.status === 'pending').length}
+            </div>
+            <p className="text-xs text-muted-foreground">Awaiting processing</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
+            <Calendar className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {orders.filter(order => order.status === 'completed').length}
+            </div>
+            <p className="text-xs text-muted-foreground">Successfully completed</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cancelled</CardTitle>
+            <Calendar className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {orders.filter(order => order.status === 'cancelled').length}
+            </div>
+            <p className="text-xs text-muted-foreground">Cancelled orders</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -345,66 +449,111 @@ export default function SalesInvoices() {
           {loading ? (
             <div className="text-center py-8">Loading invoices...</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">Invoice #</th>
-                    <th className="text-left p-2">Customer</th>
-                    <th className="text-left p-2">Date</th>
-                    <th className="text-left p-2">Amount</th>
-                    <th className="text-left p-2">Payment</th>
-                    <th className="text-left p-2">Status</th>
-                    <th className="text-left p-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredOrders.map((order) => (
-                    <tr key={order.id} className="border-b hover:bg-gray-50">
-                      <td className="p-2 font-medium">{order.invoice_number || order.id.slice(0, 8)}</td>
-                      <td className="p-2">
-                        <div>
-                          <div className="font-medium">{order.customers?.name || order.customer_name || 'Walk-in Customer'}</div>
-                          {(order.customers?.phone || order.customer_phone) && (
-                            <div className="text-sm text-muted-foreground">{order.customers?.phone || order.customer_phone}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-2">{new Date(order.created_at).toLocaleDateString()}</td>
-                      <td className="p-2 font-medium">₹{(order.total_amount || 0).toLocaleString()}</td>
-                      <td className="p-2">
-                        <Badge variant={getPaymentStatusBadgeVariant(order.payment_status || 'pending')}>
-                          {order.payment_status || 'pending'}
-                        </Badge>
-                      </td>
-                      <td className="p-2">
-                        <Badge variant={getStatusBadgeVariant(order.status)}>
-                          {order.status}
-                        </Badge>
-                      </td>
-                      <td className="p-2">
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleViewOrder(order)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => printInvoice(order)}
-                          >
-                            <Printer className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Invoice #</th>
+                      <th className="text-left p-2">Customer</th>
+                      <th className="text-left p-2">Date</th>
+                      <th className="text-left p-2">Amount</th>
+                      <th className="text-left p-2">Payment</th>
+                      <th className="text-left p-2">Status</th>
+                      <th className="text-left p-2">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {paginatedOrders.map((order) => (
+                      <tr key={order.id} className="border-b hover:bg-gray-50">
+                        <td className="p-2 font-medium">{order.invoice_number || order.id.slice(0, 8)}</td>
+                        <td className="p-2">
+                          <div>
+                            <div className="font-medium">{order.customers?.name || order.customer_name || 'Walk-in Customer'}</div>
+                            {(order.customers?.phone || order.customer_phone) && (
+                              <div className="text-sm text-muted-foreground">{order.customers?.phone || order.customer_phone}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-2">{new Date(order.created_at).toLocaleDateString()}</td>
+                        <td className="p-2 font-medium">₹{(order.total_amount || 0).toLocaleString()}</td>
+                        <td className="p-2">
+                          <Badge variant={getPaymentStatusBadgeVariant(order.payment_status || 'pending')}>
+                            {order.payment_status || 'pending'}
+                          </Badge>
+                        </td>
+                        <td className="p-2">
+                          <Badge variant={getStatusBadgeVariant(order.status)}>
+                            {order.status}
+                          </Badge>
+                        </td>
+                        <td className="p-2">
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewOrder(order)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditOrder(order)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => printInvoice(order)}
+                            >
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteOrder(order.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                {filteredOrders.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No invoices found matching your criteria.
+                  </div>
+                )}
+              </div>
+              
+              {filteredOrders.length > 0 && (
+                <div className="mt-4">
+                  <DataPagination
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={filteredOrders.length}
+                    itemsPerPage={pagination.itemsPerPage}
+                    startIndex={pagination.startIndex}
+                    endIndex={pagination.endIndex}
+                    hasNextPage={pagination.hasNextPage}
+                    hasPreviousPage={pagination.hasPreviousPage}
+                    onPageChange={pagination.goToPage}
+                    onItemsPerPageChange={pagination.setItemsPerPage}
+                    onFirstPage={pagination.goToFirstPage}
+                    onLastPage={pagination.goToLastPage}
+                    onNextPage={pagination.goToNextPage}
+                    onPreviousPage={pagination.goToPreviousPage}
+                    getPageNumbers={pagination.getPageNumbers}
+                    itemsPerPageOptions={[15, 30, 50, 100]}
+                  />
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

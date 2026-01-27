@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DataPagination } from '@/components/ui/data-pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Edit, Trash2, Star, Package, TrendingUp, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -74,6 +76,7 @@ export default function ProductManagement() {
 
   const fetchProducts = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -87,6 +90,8 @@ export default function ProductManagement() {
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -213,18 +218,31 @@ export default function ProductManagement() {
     });
   };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = filterCategory === 'all' || !filterCategory || product.category_id === filterCategory;
-    const matchesStatus = filterStatus === 'all' || 
-                         (filterStatus === 'active' && product.is_visible) ||
-                         (filterStatus === 'inactive' && !product.is_visible) ||
-                         (filterStatus === 'featured' && product.is_featured) ||
-                         (filterStatus === 'low_stock' && product.stock_quantity <= (product.reorder_point || 10));
-    
-    return matchesSearch && matchesCategory && matchesStatus;
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesCategory = filterCategory === 'all' || !filterCategory || product.category_id === filterCategory;
+      const matchesStatus = filterStatus === 'all' || 
+                           (filterStatus === 'active' && product.is_visible) ||
+                           (filterStatus === 'inactive' && !product.is_visible) ||
+                           (filterStatus === 'featured' && product.is_featured) ||
+                           (filterStatus === 'low_stock' && product.stock_quantity <= (product.reorder_point || 10));
+      
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [products, searchTerm, filterCategory, filterStatus]);
+
+  const pagination = usePagination({
+    totalItems: filteredProducts.length,
+    itemsPerPage: 25,
   });
+
+  const paginatedProducts = useMemo(() => {
+    const startIndex = pagination.startIndex;
+    const endIndex = pagination.endIndex;
+    return filteredProducts.slice(startIndex, endIndex);
+  }, [filteredProducts, pagination.startIndex, pagination.endIndex]);
 
   const getStockStatus = (product: Product) => {
     if (product.stock_quantity === 0) return { label: 'Out of Stock', color: 'destructive' };
@@ -506,21 +524,28 @@ export default function ProductManagement() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Product</th>
-                  <th className="text-left p-2">SKU</th>
-                  <th className="text-left p-2">Category</th>
-                  <th className="text-left p-2">Price</th>
-                  <th className="text-left p-2">Stock</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.map((product) => {
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+              <p className="mt-2">Loading products...</p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Product</th>
+                      <th className="text-left p-2">SKU</th>
+                      <th className="text-left p-2">Category</th>
+                      <th className="text-left p-2">Price</th>
+                      <th className="text-left p-2">Stock</th>
+                      <th className="text-left p-2">Status</th>
+                      <th className="text-left p-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                {paginatedProducts.map((product) => {
                   const stockStatus = getStockStatus(product);
                   return (
                     <tr key={product.id} className="border-b hover:bg-gray-50">
@@ -592,7 +617,38 @@ export default function ProductManagement() {
                 })}
               </tbody>
             </table>
+            
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No products found matching your criteria.
+              </div>
+            )}
           </div>
+          
+            {filteredProducts.length > 0 && (
+              <div className="mt-4">
+                <DataPagination
+                  currentPage={pagination.currentPage}
+                  totalPages={pagination.totalPages}
+                  totalItems={filteredProducts.length}
+                  itemsPerPage={pagination.itemsPerPage}
+                  startIndex={pagination.startIndex}
+                  endIndex={pagination.endIndex}
+                  hasNextPage={pagination.hasNextPage}
+                  hasPreviousPage={pagination.hasPreviousPage}
+                  onPageChange={pagination.goToPage}
+                  onItemsPerPageChange={pagination.setItemsPerPage}
+                  onFirstPage={pagination.goToFirstPage}
+                  onLastPage={pagination.goToLastPage}
+                  onNextPage={pagination.goToNextPage}
+                  onPreviousPage={pagination.goToPreviousPage}
+                  getPageNumbers={pagination.getPageNumbers}
+                  itemsPerPageOptions={[10, 25, 50, 100]}
+                />
+              </div>
+            )}
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DataPagination } from '@/components/ui/data-pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Edit, Trash2, Search, Phone, Mail, MapPin, User } from 'lucide-react';
 import { toast } from 'sonner';
@@ -170,14 +172,27 @@ export default function CustomerManagement() {
     setIsDialogOpen(false);
   };
 
-  const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (customer.phone && customer.phone.includes(searchTerm));
-    const matchesType = typeFilter === 'all' || customer.customer_type === typeFilter;
-    
-    return matchesSearch && matchesType;
+  const filteredCustomers = useMemo(() => {
+    return customers.filter(customer => {
+      const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                           (customer.phone && customer.phone.includes(searchTerm));
+      const matchesType = typeFilter === 'all' || customer.customer_type === typeFilter;
+      
+      return matchesSearch && matchesType;
+    });
+  }, [customers, searchTerm, typeFilter]);
+
+  const pagination = usePagination({
+    totalItems: filteredCustomers.length,
+    itemsPerPage: 15,
   });
+
+  const paginatedCustomers = useMemo(() => {
+    const startIndex = pagination.startIndex;
+    const endIndex = pagination.endIndex;
+    return filteredCustomers.slice(startIndex, endIndex);
+  }, [filteredCustomers, pagination.startIndex, pagination.endIndex]);
 
   return (
     <div className="space-y-6">
@@ -385,8 +400,9 @@ export default function CustomerManagement() {
           {loading ? (
             <div className="text-center py-8">Loading customers...</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredCustomers.map((customer) => (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {paginatedCustomers.map((customer) => (
                 <Card key={customer.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
@@ -453,8 +469,38 @@ export default function CustomerManagement() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+                ))}
+              </div>
+              
+              {filteredCustomers.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No customers found matching your criteria.
+                </div>
+              )}
+              
+              {filteredCustomers.length > 0 && (
+                <div className="mt-6">
+                  <DataPagination
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={filteredCustomers.length}
+                    itemsPerPage={pagination.itemsPerPage}
+                    startIndex={pagination.startIndex}
+                    endIndex={pagination.endIndex}
+                    hasNextPage={pagination.hasNextPage}
+                    hasPreviousPage={pagination.hasPreviousPage}
+                    onPageChange={pagination.goToPage}
+                    onItemsPerPageChange={pagination.setItemsPerPage}
+                    onFirstPage={pagination.goToFirstPage}
+                    onLastPage={pagination.goToLastPage}
+                    onNextPage={pagination.goToNextPage}
+                    onPreviousPage={pagination.goToPreviousPage}
+                    getPageNumbers={pagination.getPageNumbers}
+                    itemsPerPageOptions={[9, 15, 30, 60]}
+                  />
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
