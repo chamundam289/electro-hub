@@ -17,7 +17,8 @@ import {
   UserPlus,
   Warehouse,
   Settings,
-  TestTube
+  TestTube,
+  PieChart
 } from 'lucide-react';
 
 // Import admin components
@@ -36,6 +37,7 @@ import PaymentManagement from '@/components/admin/PaymentManagement';
 import LeadManagement from '@/components/admin/LeadManagement';
 import SupplierManagement from '@/components/admin/SupplierManagement';
 import WebsiteSettings from '@/components/admin/WebsiteSettings';
+import AdvancedReports from '@/components/admin/AdvancedReports';
 import AdminTest from '@/components/admin/AdminTest';
 
 export default function AdminDashboard() {
@@ -46,10 +48,7 @@ export default function AdminDashboard() {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  // Debug information
-  console.log('AdminDashboard - User:', user);
-  console.log('AdminDashboard - IsAdmin:', isAdmin);
-  console.log('AdminDashboard - IsLoading:', isLoading);
+
 
   if (!user) {
     return <Navigate to="/admin/login" replace />;
@@ -95,6 +94,9 @@ export default function AdminDashboard() {
     { id: 'suppliers', label: 'Suppliers', icon: UserPlus },
     { id: 'leads', label: 'Lead Management', icon: TrendingUp },
     
+    // Reports & Analytics
+    { id: 'reports', label: 'Advanced Reports', icon: PieChart },
+    
     // System Management
     { id: 'website-settings', label: 'Website Settings', icon: Settings },
     { id: 'test', label: 'System Test', icon: TestTube },
@@ -111,7 +113,7 @@ export default function AdminDashboard() {
           <nav className="mt-6">
             {menuItems.map((item, index) => {
               const Icon = item.icon;
-              const showSeparator = [1, 3, 6, 8, 10, 14].includes(index); // Add separators after logical groups
+              const showSeparator = [1, 3, 6, 8, 10, 14, 15].includes(index); // Add separators after logical groups
               
               return (
                 <div key={item.id}>
@@ -149,6 +151,7 @@ export default function AdminDashboard() {
               {activeTab === 'payments' && <PaymentManagement />}
               {activeTab === 'expenses' && <ExpenseManagement />}
               {activeTab === 'leads' && <LeadManagement />}
+              {activeTab === 'reports' && <AdvancedReports />}
               {activeTab === 'website-settings' && <WebsiteSettings />}
               {activeTab === 'test' && <AdminTest />}
             </ErrorBoundary>

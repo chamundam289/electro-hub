@@ -6,16 +6,11 @@ export interface WebsiteSettings {
   business_id?: string;
   shop_name?: string;
   shop_logo_url?: string;
+  shop_description?: string;
   shop_address?: string;
   shop_phone?: string;
   shop_email?: string;
-  social_links_json?: {
-    facebook?: string;
-    instagram?: string;
-    twitter?: string;
-    youtube?: string;
-    linkedin?: string;
-  };
+  social_links_json?: Record<string, any> | null;
   latitude?: number;
   longitude?: number;
   google_map_iframe_url?: string;
@@ -47,6 +42,7 @@ export const useWebsiteSettings = () => {
       setLoading(true);
       setError(null);
 
+      console.log('🔄 Fetching website settings...');
       const { data, error } = await supabase
         .from('website_settings')
         .select('*')
@@ -54,15 +50,28 @@ export const useWebsiteSettings = () => {
         .single();
 
       if (error && error.code !== 'PGRST116') {
+        console.error('❌ Database error:', error);
         throw error;
       }
 
       if (data) {
-        setSettings(data);
+        console.log('✅ Settings loaded from database:', {
+          popup_enabled: data.popup_enabled,
+          popup_image_url: data.popup_image_url,
+          whatsapp_number: data.whatsapp_number
+        });
+        // Type cast the data to match our interface
+        const settingsData: WebsiteSettings = {
+          ...data,
+          social_links_json: data.social_links_json as Record<string, any> | null
+        };
+        setSettings(settingsData);
       } else {
+        console.log('⚠️ No settings found in database, using defaults');
         // Set default settings if none exist
         setSettings({
           shop_name: 'Electro Hub',
+          shop_description: 'Your one-stop shop for the latest electronics and gadgets. Quality products, competitive prices, exceptional service.',
           shop_address: 'Your Shop Address Here',
           shop_phone: '+1234567890',
           shop_email: 'info@electrohub.com',
@@ -74,16 +83,19 @@ export const useWebsiteSettings = () => {
           footer_text: '© 2024 Electro Hub. All rights reserved.',
           primary_color: '#000000',
           secondary_color: '#ffffff',
-          popup_enabled: false,
+          popup_enabled: true, // Enable popup by default for testing
+          popup_image_url: 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=400&h=300&fit=crop', // Default test image
           maintenance_mode: false
         });
       }
     } catch (err: any) {
-      console.error('Error fetching website settings:', err);
+      console.error('❌ Error fetching website settings:', err);
       setError(err.message);
       // Set default settings on error
+      console.log('🔧 Using default settings due to error');
       setSettings({
         shop_name: 'Electro Hub',
+        shop_description: 'Your one-stop shop for the latest electronics and gadgets. Quality products, competitive prices, exceptional service.',
         shop_address: 'Your Shop Address Here',
         shop_phone: '+1234567890',
         shop_email: 'info@electrohub.com',
@@ -95,7 +107,8 @@ export const useWebsiteSettings = () => {
         footer_text: '© 2024 Electro Hub. All rights reserved.',
         primary_color: '#000000',
         secondary_color: '#ffffff',
-        popup_enabled: false,
+        popup_enabled: true, // Enable popup by default for testing
+        popup_image_url: 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=400&h=300&fit=crop', // Default test image
         maintenance_mode: false
       });
     } finally {

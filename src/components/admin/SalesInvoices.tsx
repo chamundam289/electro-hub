@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, Eye, Printer, Download, Filter, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,19 +11,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface Order {
   id: string;
-  invoice_number: string;
-  customer_name: string;
+  invoice_number?: string;
+  customer_id?: string;
+  customer_name?: string;
   customer_phone?: string;
-  subtotal: number;
-  tax_amount: number;
-  discount_amount: number;
-  total_amount: number;
-  payment_method: string;
-  payment_status: string;
+  subtotal?: number;
+  tax_amount?: number;
+  discount_amount?: number;
+  total_amount?: number;
+  payment_method?: string;
+  payment_status?: string;
   status: string;
   notes?: string;
   created_at: string;
   order_items?: OrderItem[];
+  customers?: {
+    name: string;
+    phone?: string;
+  };
 }
 
 interface OrderItem {
@@ -32,9 +37,9 @@ interface OrderItem {
   product_sku?: string;
   quantity: number;
   unit_price: number;
-  tax_rate: number;
-  tax_amount: number;
-  discount_amount: number;
+  tax_rate?: number;
+  tax_amount?: number;
+  discount_amount?: number;
   line_total: number;
 }
 
@@ -59,6 +64,7 @@ export default function SalesInvoices() {
         .from('orders')
         .select(`
           *,
+          customers(name, phone),
           order_items (*)
         `)
         .order('created_at', { ascending: false });
@@ -66,7 +72,6 @@ export default function SalesInvoices() {
       if (error) throw error;
       setOrders(data || []);
     } catch (error) {
-      console.error('Error fetching orders:', error);
       toast.error('Failed to fetch orders');
     } finally {
       setLoading(false);
@@ -88,7 +93,6 @@ export default function SalesInvoices() {
       });
       setIsViewDialogOpen(true);
     } catch (error) {
-      console.error('Error fetching order details:', error);
       toast.error('Failed to fetch order details');
     }
   };
@@ -129,20 +133,20 @@ export default function SalesInvoices() {
           
           <div class="invoice-info">
             <div>
-              <strong>Invoice Number:</strong> ${order.invoice_number}<br>
+              <strong>Invoice Number:</strong> ${order.invoice_number || order.id.slice(0, 8)}<br>
               <strong>Date:</strong> ${new Date(order.created_at).toLocaleDateString()}<br>
               <strong>Status:</strong> ${order.status.toUpperCase()}
             </div>
             <div>
-              <strong>Payment Method:</strong> ${order.payment_method.toUpperCase()}<br>
-              <strong>Payment Status:</strong> ${order.payment_status.toUpperCase()}
+              <strong>Payment Method:</strong> ${order.payment_method || 'N/A'}<br>
+              <strong>Payment Status:</strong> ${(order.payment_status || 'pending').toUpperCase()}
             </div>
           </div>
           
           <div class="customer-info">
             <h3>Bill To:</h3>
-            <strong>${order.customer_name}</strong><br>
-            ${order.customer_phone ? `Phone: ${order.customer_phone}<br>` : ''}
+            <strong>${order.customers?.name || order.customer_name || 'Walk-in Customer'}</strong><br>
+            ${(order.customers?.phone || order.customer_phone) ? `Phone: ${order.customers?.phone || order.customer_phone}<br>` : ''}
           </div>
           
           <table>
@@ -162,8 +166,8 @@ export default function SalesInvoices() {
                   <td>${item.product_name}</td>
                   <td>${item.product_sku || '-'}</td>
                   <td>${item.quantity}</td>
-                  <td>₹${item.unit_price.toFixed(2)}</td>
-                  <td>₹${item.tax_amount.toFixed(2)}</td>
+                  <td>${item.unit_price.toFixed(2)}</td>
+                  <td>₹${(item.tax_amount || 0).toFixed(2)}</td>
                   <td>₹${item.line_total.toFixed(2)}</td>
                 </tr>
               `).join('') || ''}
@@ -171,10 +175,10 @@ export default function SalesInvoices() {
           </table>
           
           <table class="totals">
-            <tr><td>Subtotal:</td><td>₹${order.subtotal.toFixed(2)}</td></tr>
-            <tr><td>Tax:</td><td>₹${order.tax_amount.toFixed(2)}</td></tr>
-            <tr><td>Discount:</td><td>-₹${order.discount_amount.toFixed(2)}</td></tr>
-            <tr class="total-row"><td>Total:</td><td>₹${order.total_amount.toFixed(2)}</td></tr>
+            <tr><td>Subtotal:</td><td>₹${(order.subtotal || 0).toFixed(2)}</td></tr>
+            <tr><td>Tax:</td><td>₹${(order.tax_amount || 0).toFixed(2)}</td></tr>
+            <tr><td>Discount:</td><td>-₹${(order.discount_amount || 0).toFixed(2)}</td></tr>
+            <tr class="total-row"><td>Total:</td><td>₹${(order.total_amount || 0).toFixed(2)}</td></tr>
           </table>
           
           ${order.notes ? `<div><strong>Notes:</strong> ${order.notes}</div>` : ''}
@@ -195,11 +199,11 @@ export default function SalesInvoices() {
     const csvContent = [
       ['Invoice Number', 'Customer', 'Date', 'Total Amount', 'Payment Status', 'Status'].join(','),
       ...filteredOrders.map(order => [
-        order.invoice_number,
-        order.customer_name,
+        order.invoice_number || order.id.slice(0, 8),
+        order.customers?.name || order.customer_name || 'Walk-in Customer',
         new Date(order.created_at).toLocaleDateString(),
-        order.total_amount,
-        order.payment_status,
+        order.total_amount || 0,
+        order.payment_status || 'pending',
         order.status
       ].join(','))
     ].join('\n');
@@ -215,12 +219,9 @@ export default function SalesInvoices() {
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'delivered': return 'default';
-      case 'confirmed': return 'secondary';
-      case 'processing': return 'outline';
-      case 'shipped': return 'outline';
+      case 'completed': return 'default';
+      case 'pending': return 'secondary';
       case 'cancelled': return 'destructive';
-      case 'returned': return 'destructive';
       default: return 'secondary';
     }
   };
@@ -228,16 +229,18 @@ export default function SalesInvoices() {
   const getPaymentStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'paid': return 'default';
-      case 'partial': return 'secondary';
+      case 'partially_paid': return 'secondary';
       case 'pending': return 'outline';
-      case 'overdue': return 'destructive';
       default: return 'secondary';
     }
   };
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customer_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const customerName = order.customers?.name || order.customer_name || '';
+    const invoiceNumber = order.invoice_number || order.id.slice(0, 8);
+    
+    const matchesSearch = invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         customerName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     const matchesPaymentStatus = paymentStatusFilter === 'all' || order.payment_status === paymentStatusFilter;
     
@@ -301,12 +304,8 @@ export default function SalesInvoices() {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="processing">Processing</SelectItem>
-                <SelectItem value="shipped">Shipped</SelectItem>
-                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="returned">Returned</SelectItem>
               </SelectContent>
             </Select>
             
@@ -317,9 +316,8 @@ export default function SalesInvoices() {
               <SelectContent>
                 <SelectItem value="all">All Payments</SelectItem>
                 <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="partial">Partial</SelectItem>
+                <SelectItem value="partially_paid">Partially Paid</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
               </SelectContent>
             </Select>
             
@@ -363,20 +361,20 @@ export default function SalesInvoices() {
                 <tbody>
                   {filteredOrders.map((order) => (
                     <tr key={order.id} className="border-b hover:bg-gray-50">
-                      <td className="p-2 font-medium">{order.invoice_number}</td>
+                      <td className="p-2 font-medium">{order.invoice_number || order.id.slice(0, 8)}</td>
                       <td className="p-2">
                         <div>
-                          <div className="font-medium">{order.customer_name}</div>
-                          {order.customer_phone && (
-                            <div className="text-sm text-muted-foreground">{order.customer_phone}</div>
+                          <div className="font-medium">{order.customers?.name || order.customer_name || 'Walk-in Customer'}</div>
+                          {(order.customers?.phone || order.customer_phone) && (
+                            <div className="text-sm text-muted-foreground">{order.customers?.phone || order.customer_phone}</div>
                           )}
                         </div>
                       </td>
                       <td className="p-2">{new Date(order.created_at).toLocaleDateString()}</td>
-                      <td className="p-2 font-medium">₹{order.total_amount.toLocaleString()}</td>
+                      <td className="p-2 font-medium">₹{(order.total_amount || 0).toLocaleString()}</td>
                       <td className="p-2">
-                        <Badge variant={getPaymentStatusBadgeVariant(order.payment_status)}>
-                          {order.payment_status}
+                        <Badge variant={getPaymentStatusBadgeVariant(order.payment_status || 'pending')}>
+                          {order.payment_status || 'pending'}
                         </Badge>
                       </td>
                       <td className="p-2">
@@ -415,7 +413,10 @@ export default function SalesInvoices() {
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Invoice Details - {selectedOrder?.invoice_number}</DialogTitle>
+            <DialogTitle>Invoice Details - {selectedOrder?.invoice_number || selectedOrder?.id.slice(0, 8)}</DialogTitle>
+            <DialogDescription>
+              View complete invoice information including customer details, items, and payment status.
+            </DialogDescription>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-6">
@@ -423,15 +424,15 @@ export default function SalesInvoices() {
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <h3 className="font-semibold mb-2">Customer Information</h3>
-                  <p><strong>Name:</strong> {selectedOrder.customer_name}</p>
-                  {selectedOrder.customer_phone && (
-                    <p><strong>Phone:</strong> {selectedOrder.customer_phone}</p>
+                  <p><strong>Name:</strong> {selectedOrder.customers?.name || selectedOrder.customer_name || 'Walk-in Customer'}</p>
+                  {(selectedOrder.customers?.phone || selectedOrder.customer_phone) && (
+                    <p><strong>Phone:</strong> {selectedOrder.customers?.phone || selectedOrder.customer_phone}</p>
                   )}
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">Invoice Information</h3>
                   <p><strong>Date:</strong> {new Date(selectedOrder.created_at).toLocaleDateString()}</p>
-                  <p><strong>Payment Method:</strong> {selectedOrder.payment_method}</p>
+                  <p><strong>Payment Method:</strong> {selectedOrder.payment_method || 'N/A'}</p>
                   <p><strong>Status:</strong> {selectedOrder.status}</p>
                 </div>
               </div>
@@ -458,7 +459,7 @@ export default function SalesInvoices() {
                           <td className="p-2 border">{item.product_sku || '-'}</td>
                           <td className="p-2 border">{item.quantity}</td>
                           <td className="p-2 border">₹{item.unit_price.toFixed(2)}</td>
-                          <td className="p-2 border">₹{item.tax_amount.toFixed(2)}</td>
+                          <td className="p-2 border">₹{(item.tax_amount || 0).toFixed(2)}</td>
                           <td className="p-2 border">₹{item.line_total.toFixed(2)}</td>
                         </tr>
                       ))}
@@ -472,19 +473,19 @@ export default function SalesInvoices() {
                 <div className="w-64 space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>₹{selectedOrder.subtotal.toFixed(2)}</span>
+                    <span>₹{(selectedOrder.subtotal || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tax:</span>
-                    <span>₹{selectedOrder.tax_amount.toFixed(2)}</span>
+                    <span>₹{(selectedOrder.tax_amount || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Discount:</span>
-                    <span>-₹{selectedOrder.discount_amount.toFixed(2)}</span>
+                    <span>-₹{(selectedOrder.discount_amount || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
                     <span>Total:</span>
-                    <span>₹{selectedOrder.total_amount.toFixed(2)}</span>
+                    <span>₹{(selectedOrder.total_amount || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>

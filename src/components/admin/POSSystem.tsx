@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, Plus, Minus, ShoppingCart, Trash2, Calculator, User, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
@@ -392,6 +392,9 @@ export default function POSSystem() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add New Customer</DialogTitle>
+                  <DialogDescription>
+                    Create a new customer account for this transaction.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>

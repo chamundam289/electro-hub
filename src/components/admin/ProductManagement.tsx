@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Edit, Trash2, Star, Package, TrendingUp, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -248,6 +248,9 @@ export default function ProductManagement() {
               <DialogTitle>
                 {editingProduct ? 'Edit Product' : 'Add New Product'}
               </DialogTitle>
+              <DialogDescription>
+                {editingProduct ? 'Update product information and settings.' : 'Create a new product with details, pricing, and inventory settings.'}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">

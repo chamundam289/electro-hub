@@ -19,7 +19,9 @@ import {
   Mail,
   Globe,
   Image,
-  Smartphone
+  Smartphone,
+  AlertTriangle,
+  MessageCircle
 } from 'lucide-react';
 
 interface WebsiteSettings {
@@ -27,10 +29,11 @@ interface WebsiteSettings {
   business_id?: string;
   shop_name?: string;
   shop_logo_url?: string;
+  shop_description?: string;
   shop_address?: string;
   shop_phone?: string;
   shop_email?: string;
-  social_links_json?: any;
+  social_links_json?: Record<string, any> | null;
   latitude?: number;
   longitude?: number;
   google_map_iframe_url?: string;
@@ -51,6 +54,7 @@ interface WebsiteSettings {
 export default function WebsiteSettings() {
   const [settings, setSettings] = useState<WebsiteSettings>({
     shop_name: 'Electro Hub',
+    shop_description: 'Your one-stop shop for the latest electronics and gadgets. Quality products, competitive prices, exceptional service.',
     shop_address: '',
     shop_phone: '',
     shop_email: '',
@@ -72,6 +76,7 @@ export default function WebsiteSettings() {
     maintenance_mode: false
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [socialLinks, setSocialLinks] = useState({
     facebook: '',
     instagram: '',
@@ -98,6 +103,7 @@ export default function WebsiteSettings() {
 
   const fetchSettings = async () => {
     try {
+      setError(null);
       const { data, error } = await supabase
         .from('website_settings')
         .select('*')
@@ -106,17 +112,32 @@ export default function WebsiteSettings() {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching settings:', error);
+        setError(`Database error: ${error.message}. Please make sure the website_settings table exists and has the required columns.`);
         return;
       }
 
       if (data) {
-        setSettings(data);
-        if (data.social_links_json) {
-          setSocialLinks(data.social_links_json);
+        // Type cast the data to match our interface
+        const settingsData: WebsiteSettings = {
+          ...data,
+          social_links_json: data.social_links_json as Record<string, any> | null
+        };
+        setSettings(settingsData);
+        
+        if (data.social_links_json && typeof data.social_links_json === 'object' && !Array.isArray(data.social_links_json)) {
+          const socialData = data.social_links_json as Record<string, any>;
+          setSocialLinks({
+            facebook: socialData.facebook || '',
+            instagram: socialData.instagram || '',
+            twitter: socialData.twitter || '',
+            youtube: socialData.youtube || '',
+            linkedin: socialData.linkedin || ''
+          });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching website settings:', error);
+      setError(`Failed to load settings: ${error.message}. Please check your database connection.`);
     }
   };
 
@@ -172,6 +193,27 @@ export default function WebsiteSettings() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 text-red-800">
+            <AlertTriangle className="h-5 w-5" />
+            <h3 className="font-medium">Error Loading Settings</h3>
+          </div>
+          <p className="text-red-700 mt-1 text-sm">{error}</p>
+          <Button 
+            onClick={() => {
+              setError(null);
+              fetchSettings();
+            }} 
+            variant="outline" 
+            size="sm" 
+            className="mt-2"
+          >
+            Try Again
+          </Button>
+        </div>
+      )}
+
       {loading && (
         <div className="flex items-center justify-center p-8">
           <div className="text-center">
@@ -228,6 +270,22 @@ export default function WebsiteSettings() {
                     onChange={(e) => handleInputChange('shop_logo_url', e.target.value)}
                     placeholder="https://example.com/logo.png"
                   />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Upload your logo to a service like Imgur or use a direct image URL
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="shop_description">Shop Description</Label>
+                  <Textarea
+                    id="shop_description"
+                    value={settings.shop_description || ''}
+                    onChange={(e) => handleInputChange('shop_description', e.target.value)}
+                    placeholder="Brief description of your shop"
+                    rows={2}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    This will be displayed in the footer and other places
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="shop_address">Address</Label>
@@ -377,9 +435,17 @@ export default function WebsiteSettings() {
                 WhatsApp Configuration
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h4 className="font-medium text-green-900 mb-2">📱 WhatsApp Integration</h4>
+                <p className="text-sm text-green-800">
+                  Configure your WhatsApp number and custom messages for different scenarios. 
+                  Users will be able to contact you directly from the website and popup.
+                </p>
+              </div>
+
               <div>
-                <Label htmlFor="whatsapp_number">WhatsApp Number</Label>
+                <Label htmlFor="whatsapp_number">WhatsApp Number *</Label>
                 <Input
                   id="whatsapp_number"
                   value={settings.whatsapp_number || ''}
@@ -387,41 +453,66 @@ export default function WebsiteSettings() {
                   placeholder="+1234567890"
                 />
                 <p className="text-sm text-gray-500 mt-1">
-                  Include country code (e.g., +91 for India)
+                  Include country code (e.g., +91 for India, +1 for USA)
                 </p>
               </div>
-              <div>
-                <Label htmlFor="product_inquiry_template">Product Inquiry Template</Label>
-                <Textarea
-                  id="product_inquiry_template"
-                  value={settings.product_inquiry_template || ''}
-                  onChange={(e) => handleInputChange('product_inquiry_template', e.target.value)}
-                  placeholder="Hi! I'm interested in this product: {{product_name}}. Can you provide more details?"
-                  rows={3}
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Use {{product_name}} to include the product name automatically
-                </p>
+
+              <div className="grid gap-4">
+                <div>
+                  <Label htmlFor="product_inquiry_template">Product Inquiry Message</Label>
+                  <Textarea
+                    id="product_inquiry_template"
+                    value={settings.product_inquiry_template || ''}
+                    onChange={(e) => handleInputChange('product_inquiry_template', e.target.value)}
+                    placeholder="Hi! I'm interested in this product: {{product_name}}. Can you provide more details?"
+                    rows={3}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Used when users click "WhatsApp" on product pages. Use {`{{product_name}}`} to include the product name automatically.
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="floating_button_template">Floating WhatsApp Button Message</Label>
+                  <Textarea
+                    id="floating_button_template"
+                    value={settings.floating_button_template || ''}
+                    onChange={(e) => handleInputChange('floating_button_template', e.target.value)}
+                    placeholder="Hi! I need help with your products and services."
+                    rows={2}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Used when users click the floating WhatsApp button (bottom-right corner).
+                  </p>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <Label htmlFor="offer_popup_template" className="text-yellow-900 font-medium">
+                    🎉 Popup WhatsApp Message (Special Offers)
+                  </Label>
+                  <Textarea
+                    id="offer_popup_template"
+                    value={settings.offer_popup_template || ''}
+                    onChange={(e) => handleInputChange('offer_popup_template', e.target.value)}
+                    placeholder="Hi! I saw your special offer and I'm interested. Can you tell me more?"
+                    rows={3}
+                    className="mt-2"
+                  />
+                  <p className="text-sm text-yellow-800 mt-2">
+                    <strong>This message is used when users click WhatsApp button in the popup offer!</strong> 
+                    Make it compelling to convert visitors into customers.
+                  </p>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="floating_button_template">Floating Button Template</Label>
-                <Textarea
-                  id="floating_button_template"
-                  value={settings.floating_button_template || ''}
-                  onChange={(e) => handleInputChange('floating_button_template', e.target.value)}
-                  placeholder="Hi! I need help with your products and services."
-                  rows={2}
-                />
-              </div>
-              <div>
-                <Label htmlFor="offer_popup_template">Offer Popup Template</Label>
-                <Textarea
-                  id="offer_popup_template"
-                  value={settings.offer_popup_template || ''}
-                  onChange={(e) => handleInputChange('offer_popup_template', e.target.value)}
-                  placeholder="Hi! I saw your special offer and I'm interested. Can you tell me more?"
-                  rows={2}
-                />
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-900 mb-2">💡 Message Tips:</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Keep messages friendly and professional</li>
+                  <li>• Include your business name for brand recognition</li>
+                  <li>• Make popup messages exciting to encourage contact</li>
+                  <li>• Test messages by clicking WhatsApp buttons on your site</li>
+                </ul>
               </div>
             </CardContent>
           </Card>
@@ -436,6 +527,16 @@ export default function WebsiteSettings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-900 mb-2">📱 Popup Display:</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Shows at bottom center after 3 seconds</li>
+                  <li>• Contains: Image + WhatsApp Button + Later Button</li>
+                  <li>• Appears once per browser session</li>
+                  <li>• Fully controlled from admin panel</li>
+                </ul>
+              </div>
+
               <div className="flex items-center space-x-2">
                 <Switch
                   id="popup_enabled"
@@ -444,15 +545,49 @@ export default function WebsiteSettings() {
                 />
                 <Label htmlFor="popup_enabled">Enable Popup Banner</Label>
               </div>
+
               <div>
-                <Label htmlFor="popup_image_url">Popup Image URL</Label>
+                <Label htmlFor="popup_image_url">Popup Image URL *</Label>
                 <Input
                   id="popup_image_url"
                   value={settings.popup_image_url || ''}
                   onChange={(e) => handleInputChange('popup_image_url', e.target.value)}
                   placeholder="https://example.com/popup-banner.jpg"
                 />
+                <p className="text-sm text-gray-500 mt-1">
+                  Upload your offer image to a service like Imgur or use a direct image URL
+                </p>
               </div>
+
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h4 className="font-medium text-green-900 mb-2">📱 WhatsApp Integration:</h4>
+                <p className="text-sm text-green-800 mb-2">
+                  When users click WhatsApp button, they'll be redirected to WhatsApp with your custom message.
+                </p>
+                <p className="text-sm text-green-700">
+                  <strong>Current message:</strong> "{settings.offer_popup_template || 'Not set - configure in WhatsApp tab'}"
+                </p>
+                <p className="text-sm text-green-600 mt-2">
+                  💡 Go to <strong>WhatsApp tab</strong> to customize this message!
+                </p>
+              </div>
+
+              {settings.popup_image_url && (
+                <div>
+                  <Label>Image Preview:</Label>
+                  <div className="mt-2 border rounded-lg overflow-hidden w-80 max-w-full">
+                    <img
+                      src={settings.popup_image_url}
+                      alt="Popup Image Preview"
+                      className="w-full h-48 object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOUI5QkEwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pgo8L3N2Zz4K';
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">This image will appear in the popup with WhatsApp and Later buttons below it</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

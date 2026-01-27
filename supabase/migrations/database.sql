@@ -391,6 +391,7 @@ CREATE TABLE IF NOT EXISTS public.website_settings (
     -- Shop Information
     shop_name TEXT,
     shop_logo_url TEXT,
+    shop_description TEXT,
     shop_address TEXT,
     shop_phone TEXT,
     shop_email TEXT,
@@ -464,6 +465,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO public.website_settings (
     business_id, 
     shop_name, 
+    shop_description,
     shop_address, 
     shop_phone, 
     shop_email,
@@ -475,6 +477,7 @@ INSERT INTO public.website_settings (
 SELECT 
     b.id,
     'Electro Hub',
+    'Your one-stop shop for the latest electronics and gadgets. Quality products, competitive prices, exceptional service.',
     'Your Shop Address Here',
     '+1234567890',
     'info@electrohub.com',

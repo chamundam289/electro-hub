@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Eye, Edit, Printer, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,24 +14,21 @@ interface Order {
   id: string;
   invoice_number?: string;
   customer_id?: string;
-  sub_total?: number;
+  subtotal?: number;
   tax_amount?: number;
   discount_amount?: number;
   total_amount?: number;
-  paid_amount?: number;
-  balance_amount?: number;
   payment_method?: string;
   payment_status?: string;
-  order_type?: string;
   status: string;
-  shipping_address?: string;
+  notes?: string;
   created_at: string;
   customers?: { name: string; phone?: string };
   order_items?: Array<{
     product_name: string;
     quantity: number;
     unit_price: number;
-    net_price: number;
+    line_total: number;
   }>;
 }
 
@@ -61,7 +58,7 @@ export default function OrderManagement() {
             product_name,
             quantity,
             unit_price,
-            net_price
+            line_total
           )
         `)
         .order('created_at', { ascending: false });
@@ -69,7 +66,6 @@ export default function OrderManagement() {
       if (error) throw error;
       setOrders(data || []);
     } catch (error) {
-      console.error('Error fetching orders:', error);
       toast.error('Failed to load orders');
     }
   };
@@ -127,7 +123,7 @@ export default function OrderManagement() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'paid': return 'default';
+      case 'completed': return 'default';
       case 'pending': return 'secondary';
       case 'cancelled': return 'destructive';
       default: return 'outline';
@@ -138,15 +134,15 @@ export default function OrderManagement() {
     switch (status) {
       case 'paid': return 'default';
       case 'partially_paid': return 'secondary';
-      case 'unpaid': return 'destructive';
+      case 'pending': return 'destructive';
       default: return 'outline';
     }
   };
 
   const totalOrders = orders.length;
-  const paidOrders = orders.filter(o => o.status === 'paid').length;
+  const completedOrders = orders.filter(o => o.status === 'completed').length;
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
-  const totalRevenue = orders.filter(o => o.status === 'paid').reduce((sum, o) => sum + (o.total_amount || 0), 0);
+  const totalRevenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.total_amount || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -173,7 +169,7 @@ export default function OrderManagement() {
             <FileText className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{paidOrders}</div>
+            <div className="text-2xl font-bold text-green-600">{completedOrders}</div>
             <p className="text-xs text-muted-foreground">Successfully completed</p>
           </CardContent>
         </Card>
@@ -225,7 +221,7 @@ export default function OrderManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
@@ -241,7 +237,7 @@ export default function OrderManagement() {
                   <SelectItem value="all">All Payments</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
                   <SelectItem value="partially_paid">Partially Paid</SelectItem>
-                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -301,7 +297,6 @@ export default function OrderManagement() {
                     <td className="p-2">
                       <div>
                         <p className="font-medium">{order.invoice_number || order.id.slice(0, 8)}</p>
-                        <p className="text-xs text-gray-500 capitalize">{order.order_type || 'walk_in'}</p>
                       </div>
                     </td>
                     <td className="p-2">
@@ -318,13 +313,10 @@ export default function OrderManagement() {
                     </td>
                     <td className="p-2">
                       <p className="font-medium">₹{(order.total_amount || 0).toLocaleString()}</p>
-                      {order.balance_amount && order.balance_amount > 0 && (
-                        <p className="text-xs text-red-600">Balance: ₹{order.balance_amount}</p>
-                      )}
                     </td>
                     <td className="p-2">
                       <Badge variant={getPaymentStatusColor(order.payment_status)}>
-                        {order.payment_status || 'paid'}
+                        {order.payment_status || 'pending'}
                       </Badge>
                       {order.payment_method && (
                         <p className="text-xs text-gray-500 mt-1 capitalize">{order.payment_method}</p>
@@ -339,7 +331,7 @@ export default function OrderManagement() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="paid">Paid</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
                           <SelectItem value="pending">Pending</SelectItem>
                           <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
@@ -375,6 +367,9 @@ export default function OrderManagement() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
+            <DialogDescription>
+              View complete order information including items, customer details, and payment status.
+            </DialogDescription>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
@@ -395,15 +390,15 @@ export default function OrderManagement() {
                   )}
                 </div>
                 <div>
-                  <Label>Order Type</Label>
-                  <p className="font-medium capitalize">{selectedOrder.order_type || 'walk_in'}</p>
+                  <Label>Notes</Label>
+                  <p className="font-medium">{selectedOrder.notes || 'No notes'}</p>
                 </div>
               </div>
 
-              {selectedOrder.shipping_address && (
+              {selectedOrder.notes && (
                 <div>
-                  <Label>Shipping Address</Label>
-                  <p className="font-medium">{selectedOrder.shipping_address}</p>
+                  <Label>Additional Notes</Label>
+                  <p className="font-medium">{selectedOrder.notes}</p>
                 </div>
               )}
 
@@ -426,7 +421,7 @@ export default function OrderManagement() {
                           <td className="p-2">{item.product_name}</td>
                           <td className="p-2">{item.quantity}</td>
                           <td className="p-2">₹{item.unit_price}</td>
-                          <td className="p-2">₹{item.net_price}</td>
+                          <td className="p-2">₹{item.line_total}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -439,7 +434,7 @@ export default function OrderManagement() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>₹{(selectedOrder.sub_total || 0).toFixed(2)}</span>
+                    <span>₹{(selectedOrder.subtotal || 0).toFixed(2)}</span>
                   </div>
                   {selectedOrder.tax_amount && selectedOrder.tax_amount > 0 && (
                     <div className="flex justify-between">
@@ -458,13 +453,15 @@ export default function OrderManagement() {
                     <span>₹{(selectedOrder.total_amount || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Paid:</span>
-                    <span>₹{(selectedOrder.paid_amount || 0).toFixed(2)}</span>
+                    <span>Payment Status:</span>
+                    <Badge variant={getPaymentStatusColor(selectedOrder.payment_status)}>
+                      {selectedOrder.payment_status || 'pending'}
+                    </Badge>
                   </div>
-                  {selectedOrder.balance_amount && selectedOrder.balance_amount > 0 && (
-                    <div className="flex justify-between text-red-600">
-                      <span>Balance:</span>
-                      <span>₹{selectedOrder.balance_amount.toFixed(2)}</span>
+                  {selectedOrder.payment_method && (
+                    <div className="flex justify-between">
+                      <span>Payment Method:</span>
+                      <span className="capitalize">{selectedOrder.payment_method}</span>
                     </div>
                   )}
                 </div>
