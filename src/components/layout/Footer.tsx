@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Zap, Mail, Phone, MapPin, Facebook, Twitter, Instagram } from 'lucide-react';
-import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { useWebsiteSettings } from '@/hooks/useWebsiteSettings';
 
 export function Footer() {
-  const { data: settings } = useStoreSettings();
+  const { settings } = useWebsiteSettings();
 
   return (
     <footer className="bg-secondary text-secondary-foreground">
@@ -16,22 +16,28 @@ export function Footer() {
                 <Zap className="h-6 w-6 text-primary-foreground" />
               </div>
               <span className="font-display text-xl font-bold">
-                {settings?.store_name || 'ElectroStore'}
+                {settings?.shop_name || 'ElectroStore'}
               </span>
             </Link>
             <p className="text-sm text-secondary-foreground/70">
               Your one-stop shop for the latest electronics and gadgets. Quality products, competitive prices, exceptional service.
             </p>
             <div className="flex gap-3">
-              <a href="#" className="p-2 rounded-lg bg-secondary-foreground/10 hover:bg-primary hover:text-primary-foreground transition-colors">
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a href="#" className="p-2 rounded-lg bg-secondary-foreground/10 hover:bg-primary hover:text-primary-foreground transition-colors">
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a href="#" className="p-2 rounded-lg bg-secondary-foreground/10 hover:bg-primary hover:text-primary-foreground transition-colors">
-                <Instagram className="h-5 w-5" />
-              </a>
+              {settings?.social_links_json?.facebook && (
+                <a href={settings.social_links_json.facebook} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-secondary-foreground/10 hover:bg-primary hover:text-primary-foreground transition-colors">
+                  <Facebook className="h-5 w-5" />
+                </a>
+              )}
+              {settings?.social_links_json?.twitter && (
+                <a href={settings.social_links_json.twitter} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-secondary-foreground/10 hover:bg-primary hover:text-primary-foreground transition-colors">
+                  <Twitter className="h-5 w-5" />
+                </a>
+              )}
+              {settings?.social_links_json?.instagram && (
+                <a href={settings.social_links_json.instagram} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-secondary-foreground/10 hover:bg-primary hover:text-primary-foreground transition-colors">
+                  <Instagram className="h-5 w-5" />
+                </a>
+              )}
             </div>
           </div>
 
@@ -66,25 +72,25 @@ export function Footer() {
           <div className="space-y-4">
             <h3 className="font-display text-lg font-semibold">Contact Us</h3>
             <ul className="space-y-3">
-              {settings?.address && (
+              {settings?.shop_address && (
                 <li className="flex items-start gap-3 text-sm text-secondary-foreground/70">
                   <MapPin className="h-5 w-5 shrink-0 mt-0.5" />
-                  <span>{settings.address}</span>
+                  <span>{settings.shop_address}</span>
                 </li>
               )}
-              {settings?.phone && (
+              {settings?.shop_phone && (
                 <li className="flex items-center gap-3 text-sm text-secondary-foreground/70">
                   <Phone className="h-5 w-5 shrink-0" />
-                  <a href={`tel:${settings.phone}`} className="hover:text-primary transition-colors">
-                    {settings.phone}
+                  <a href={`tel:${settings.shop_phone}`} className="hover:text-primary transition-colors">
+                    {settings.shop_phone}
                   </a>
                 </li>
               )}
-              {settings?.email && (
+              {settings?.shop_email && (
                 <li className="flex items-center gap-3 text-sm text-secondary-foreground/70">
                   <Mail className="h-5 w-5 shrink-0" />
-                  <a href={`mailto:${settings.email}`} className="hover:text-primary transition-colors">
-                    {settings.email}
+                  <a href={`mailto:${settings.shop_email}`} className="hover:text-primary transition-colors">
+                    {settings.shop_email}
                   </a>
                 </li>
               )}
@@ -116,7 +122,7 @@ export function Footer() {
         <div className="mt-12 pt-8 border-t border-secondary-foreground/10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-secondary-foreground/70">
-              © {new Date().getFullYear()} {settings?.store_name || 'ElectroStore'}. All rights reserved.
+              {settings?.footer_text || `© ${new Date().getFullYear()} ${settings?.shop_name || 'ElectroStore'}. All rights reserved.`}
             </p>
             <div className="flex gap-4">
               <Link to="/admin/login" className="text-sm text-secondary-foreground/50 hover:text-primary transition-colors">
