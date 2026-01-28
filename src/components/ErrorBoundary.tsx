@@ -24,7 +24,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
   render() {
@@ -34,38 +34,74 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       }
 
       return (
-        <Card className="max-w-md mx-auto mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-5 w-5" />
-              Something went wrong
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-gray-600">
-              An error occurred while loading this component. Please try refreshing the page.
-            </p>
-            {this.state.error && (
-              <details className="text-xs text-gray-500">
-                <summary className="cursor-pointer">Error details</summary>
-                <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">
-                  {this.state.error.message}
-                </pre>
-              </details>
-            )}
-            <Button 
-              onClick={() => window.location.reload()} 
-              className="w-full"
-              variant="outline"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Page
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="min-h-[400px] flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <CardTitle className="text-red-900">Something went wrong</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <p className="text-gray-600">
+                An error occurred while loading this component. This might be due to:
+              </p>
+              <ul className="text-sm text-gray-500 text-left space-y-1">
+                <li>• Database tables not created yet</li>
+                <li>• Missing permissions or policies</li>
+                <li>• Network connectivity issues</li>
+              </ul>
+              <div className="space-y-2">
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  className="w-full"
+                  variant="outline"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh Page
+                </Button>
+                <Button 
+                  onClick={() => this.setState({ hasError: false })}
+                  className="w-full"
+                >
+                  Try Again
+                </Button>
+              </div>
+              {this.state.error && (
+                <details className="text-xs text-left bg-gray-50 p-2 rounded">
+                  <summary className="cursor-pointer font-medium">Error Details</summary>
+                  <pre className="mt-2 whitespace-pre-wrap">
+                    {this.state.error.message}
+                  </pre>
+                </details>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       );
     }
 
     return this.props.children;
   }
 }
+
+// Simple functional error boundary for specific components
+export const SimpleErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center space-x-2 text-red-800">
+            <AlertTriangle className="w-5 h-5" />
+            <span className="font-medium">Component Error</span>
+          </div>
+          <p className="text-red-600 text-sm mt-1">
+            This component failed to load. Please check the database setup and refresh the page.
+          </p>
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+};

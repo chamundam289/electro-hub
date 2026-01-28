@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,21 +10,33 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user, profile, isAdmin, getRedirectPath } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already logged in as admin
+  useEffect(() => {
+    if (user && profile && isAdmin) {
+      const redirectPath = getRedirectPath(profile);
+      navigate(redirectPath, { replace: true });
+    }
+  }, [user, profile, isAdmin, navigate, getRedirectPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    const { error } = await signIn(email, password);
-    
-    if (error) {
-      setError(error.message);
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        setError(error.message);
+      }
+      // Don't handle redirect here - let useEffect handle it after profile loads
+    } catch (error) {
+      setError('An unexpected error occurred');
+    } finally {
       setIsLoading(false);
-    } else {
-      navigate('/admin');
     }
   };
 

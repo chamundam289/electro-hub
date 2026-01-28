@@ -21,7 +21,8 @@ import {
   TestTube,
   PieChart,
   Smartphone,
-  Wrench
+  Wrench,
+  Share2
 } from 'lucide-react';
 
 // Import admin components
@@ -44,9 +45,11 @@ import AdvancedReports from '@/components/admin/AdvancedReports';
 import AdminTest from '@/components/admin/AdminTest';
 import MobileRecharge from '@/components/admin/MobileRecharge';
 import MobileRepair from '@/components/admin/MobileRepair';
+import { AffiliateManagement } from '@/components/admin/AffiliateManagement';
+import { AffiliateSystemTest } from '@/components/test/AffiliateSystemTest';
 
 export default function AdminDashboard() {
-  const { isAdmin, isLoading, user } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
   // Utility function to scroll to top
@@ -58,12 +61,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     handleScrollToTop();
   }, [activeTab]);
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-
 
   if (!user) {
     return <Navigate to="/admin/login" replace />;
@@ -110,6 +107,7 @@ export default function AdminDashboard() {
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'suppliers', label: 'Suppliers', icon: UserPlus },
     { id: 'leads', label: 'Lead Management', icon: TrendingUp },
+    { id: 'affiliates', label: 'Affiliate Marketing', icon: Share2 },
     
     // Reports & Analytics
     { id: 'reports', label: 'Advanced Reports', icon: PieChart },
@@ -117,6 +115,7 @@ export default function AdminDashboard() {
     // System Management
     { id: 'website-settings', label: 'Website Settings', icon: Settings },
     { id: 'test', label: 'System Test', icon: TestTube },
+    { id: 'affiliate-test', label: 'Affiliate Test', icon: TestTube },
   ];
 
   return (
@@ -186,9 +185,11 @@ export default function AdminDashboard() {
               {activeTab === 'mobile-recharge' && <MobileRecharge />}
               {activeTab === 'mobile-repair' && <MobileRepair />}
               {activeTab === 'leads' && <LeadManagement />}
+              {activeTab === 'affiliates' && <AffiliateManagement />}
               {activeTab === 'reports' && <AdvancedReports />}
               {activeTab === 'website-settings' && <WebsiteSettings />}
               {activeTab === 'test' && <AdminTest />}
+              {activeTab === 'affiliate-test' && <AffiliateSystemTest />}
             </ErrorBoundary>
           </div>
         </div>
