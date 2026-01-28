@@ -52,6 +52,7 @@ export default function ProductManagement() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [imageUrlValid, setImageUrlValid] = useState(true);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -113,11 +114,36 @@ export default function ProductManagement() {
     }
   };
 
+  // Helper function to validate image URL
+  const isValidImageUrl = (url: string): boolean => {
+    if (!url) return true; // Empty URL is valid (optional)
+    
+    try {
+      const urlObj = new URL(url);
+      const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+      const pathname = urlObj.pathname.toLowerCase();
+      
+      return validExtensions.some(ext => pathname.endsWith(ext)) || 
+             pathname.includes('/image/') || 
+             urlObj.hostname.includes('imgur') ||
+             urlObj.hostname.includes('cloudinary') ||
+             urlObj.hostname.includes('supabase');
+    } catch {
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Validate image URL if provided
+      if (formData.image_url && !isValidImageUrl(formData.image_url)) {
+        toast.error('Please enter a valid image URL');
+        setLoading(false);
+        return;
+      }
       // Generate a unique slug
       const baseSlug = formData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       let uniqueSlug = baseSlug;
@@ -227,6 +253,7 @@ export default function ProductManagement() {
       is_visible: product.is_visible,
       is_featured: product.is_featured
     });
+    setImageUrlValid(isValidImageUrl(product.image_url || ''));
     setIsDialogOpen(true);
   };
 
@@ -267,6 +294,7 @@ export default function ProductManagement() {
       is_visible: true,
       is_featured: false
     });
+    setImageUrlValid(true);
   };
 
   const filteredProducts = useMemo(() => {
@@ -469,14 +497,87 @@ export default function ProductManagement() {
 
               <div>
                 <Label>Product Image</Label>
-                <ImageUpload
-                  onImageUploaded={(imageUrl) => setFormData({ ...formData, image_url: imageUrl })}
-                  currentImage={formData.image_url}
-                  folder="products"
-                  maxSize={5}
-                  allowedTypes={['image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
-                  showPreview={true}
-                />
+                <div className="space-y-4">
+                  {/* File Upload Option */}
+                  <div>
+                    <Label className="text-sm text-gray-600">Upload Image File</Label>
+                    <ImageUpload
+                      onImageUploaded={(imageUrl) => setFormData({ ...formData, image_url: imageUrl })}
+                      currentImage={formData.image_url}
+                      folder="products"
+                      maxSize={5}
+                      allowedTypes={['image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
+                      showPreview={true}
+                    />
+                  </div>
+                  
+                  {/* Manual URL Input Option */}
+                  <div>
+                    <Label className="text-sm text-gray-600">Or Enter Image URL</Label>
+                    <div className="relative">
+                      <Input
+                        type="url"
+                        placeholder="https://example.com/image.jpg"
+                        value={formData.image_url}
+                        onChange={(e) => {
+                          const url = e.target.value;
+                          setFormData({ ...formData, image_url: url });
+                          setImageUrlValid(isValidImageUrl(url));
+                        }}
+                        className={!imageUrlValid && formData.image_url ? 'border-red-500' : ''}
+                      />
+                      {formData.image_url && (
+                        <div className="absolute right-2 top-2">
+                          {imageUrlValid ? (
+                            <div className="text-green-500 text-xs">✓ Valid</div>
+                          ) : (
+                            <div className="text-red-500 text-xs">✗ Invalid</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      You can either upload an image file above or enter a direct image URL here
+                    </p>
+                    {!imageUrlValid && formData.image_url && (
+                      <p className="text-xs text-red-500 mt-1">
+                        Please enter a valid image URL (jpg, png, gif, webp, svg)
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Image Preview */}
+                  {formData.image_url && (
+                    <div>
+                      <Label className="text-sm text-gray-600">Current Image Preview</Label>
+                      <div className="mt-2 border rounded-lg p-2 bg-gray-50">
+                        <img
+                          src={formData.image_url}
+                          alt="Product preview"
+                          className="max-w-full h-32 object-cover rounded"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            const errorDiv = target.nextElementSibling as HTMLElement;
+                            target.style.display = 'none';
+                            if (errorDiv) errorDiv.style.display = 'block';
+                          }}
+                        />
+                        <div className="text-red-500 text-sm hidden">
+                          Failed to load image. Please check the URL.
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => setFormData({ ...formData, image_url: '' })}
+                      >
+                        Remove Image
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center space-x-4">
