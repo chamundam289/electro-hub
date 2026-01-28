@@ -128,6 +128,64 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+    overflow-y: hidden; /* Hide body scrollbar - only use main content scroll */
+  }
+
+  /* Admin layout specific styles */
+  .admin-layout {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .admin-sidebar {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .admin-main-content {
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Hide any additional scrollbars */
+  html {
+    overflow: hidden;
+  }
+
+  /* Ensure only admin main content scrolls */
+  .admin-layout * {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  .admin-layout *::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  /* Re-enable scrollbar only for main content and sidebar nav */
+  .admin-main-content {
+    scrollbar-width: thin;
+    -ms-overflow-style: auto;
+  }
+
+  .admin-main-content::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+  }
+
+  .admin-main-content::-webkit-scrollbar-track {
+    background: hsl(var(--muted-foreground) / 0.1);
+  }
+
+  .admin-main-content::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+
+  .admin-main-content::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -240,6 +298,42 @@
   .text-gradient {
     @apply bg-clip-text text-transparent;
     background-image: var(--gradient-primary);
+  }
+
+  /* Custom Scrollbar Styles */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  .scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
+    background-color: hsl(220 12% 80%);
+  }
+
+  .scrollbar-track-gray-100::-webkit-scrollbar-track {
+    background-color: hsl(220 14% 96%);
+  }
+
+  .scrollbar-thumb-gray-400:hover::-webkit-scrollbar-thumb {
+    background-color: hsl(220 10% 65%);
   }
 
   .animate-float {

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { scrollToTop, ScrollToTop } from '@/components/ui/ScrollToTop';
 import { 
   BarChart3, 
   ShoppingCart, 
@@ -47,6 +48,16 @@ import MobileRepair from '@/components/admin/MobileRepair';
 export default function AdminDashboard() {
   const { isAdmin, isLoading, user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Utility function to scroll to top
+  const handleScrollToTop = () => {
+    scrollToTop();
+  };
+
+  // Scroll to top when navigating to different admin sections
+  useEffect(() => {
+    handleScrollToTop();
+  }, [activeTab]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -109,14 +120,17 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-white shadow-lg min-h-screen">
-          <div className="p-6 border-b">
-            <h1 className="text-xl font-bold text-gray-800">Admin Panel</h1>
-          </div>
-          <nav className="mt-6">
+    <div className="admin-layout bg-gray-50 flex">
+      {/* Sidebar - Fixed height, only nav scrolls */}
+      <div className="admin-sidebar w-64 bg-white shadow-lg flex flex-col fixed left-0 top-0 z-30">
+        {/* Fixed Header */}
+        <div className="p-6 border-b flex-shrink-0 bg-white">
+          <h1 className="text-xl font-bold text-gray-800">Admin Panel</h1>
+        </div>
+        
+        {/* Scrollable Navigation - Only this part scrolls */}
+        <nav className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
+          <div className="py-2">
             {menuItems.map((item, index) => {
               const Icon = item.icon;
               const showSeparator = [1, 3, 6, 8, 10, 14, 15].includes(index); // Add separators after logical groups
@@ -125,26 +139,39 @@ export default function AdminDashboard() {
                 <div key={item.id}>
                   <button
                     onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-100 transition-colors ${
-                      activeTab === item.id ? 'bg-blue-50 border-r-2 border-blue-500 text-blue-600' : 'text-gray-600'
+                    className={`w-full flex items-center px-6 py-3 text-left hover:bg-gray-100 transition-all duration-200 ${
+                      activeTab === item.id 
+                        ? 'bg-blue-50 border-r-2 border-blue-500 text-blue-600 font-medium' 
+                        : 'text-gray-600 hover:text-gray-800'
                     }`}
+                    title={item.label}
                   >
-                    <Icon className="w-5 h-5 mr-3" />
-                    {item.label}
+                    <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                    <span className="truncate text-sm">{item.label}</span>
                   </button>
                   {showSeparator && <div className="mx-4 my-2 border-t border-gray-200" />}
                 </div>
               );
             })}
-          </nav>
+          </div>
+        </nav>
+        
+        {/* Fixed Footer */}
+        <div className="p-4 border-t bg-gray-50 flex-shrink-0">
+          <div className="text-xs text-gray-500 text-center">
+            <p>ElectroStore Admin</p>
+            <p>v1.0.0</p>
+          </div>
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className="flex-1 p-6">
+      {/* Main Content - Independent scrolling */}
+      <div className="admin-main-content flex-1 ml-64">
+        <div className="p-6">
           <div className="max-w-7xl mx-auto">
             <ErrorBoundary>
               {activeTab === 'overview' && <DashboardOverview />}
-              {activeTab === 'pos' && <POSSystem />}
+              {activeTab === 'pos' && <POSSystem key="pos-system" />}
               {activeTab === 'products' && <ProductManagement />}
               {activeTab === 'inventory' && <InventoryManagement />}
               {activeTab === 'orders' && <OrderManagement />}
@@ -166,6 +193,9 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+      
+      {/* Global Scroll to Top Button */}
+      <ScrollToTop />
     </div>
   );
 }

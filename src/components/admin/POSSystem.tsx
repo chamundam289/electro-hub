@@ -7,8 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ProductGridShimmer, FormShimmer, CardShimmer } from '@/components/ui/shimmer';
+import { scrollToTop } from '@/components/ui/ScrollToTop';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Plus, Minus, ShoppingCart, Trash2, Calculator, User, CreditCard, Mail, MessageCircle, Smartphone, Wrench } from 'lucide-react';
+import { Search, Plus, Minus,
+   ShoppingCart, Trash2, Calculator, User, CreditCard, Mail, MessageCircle, Smartphone, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -44,6 +46,7 @@ interface Customer {
 }
 
 export default function POSSystem() {
+  const [activeTab, setActiveTab] = useState('products'); // Explicitly set Products tab as default
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -128,6 +131,12 @@ export default function POSSystem() {
   ];
 
   useEffect(() => {
+    // Always start with Products tab when component mounts
+    setActiveTab('products');
+    
+    // Scroll to top of the page when POS component mounts
+    scrollToTop();
+    
     fetchProducts();
     fetchCustomers();
   }, []);
@@ -165,6 +174,23 @@ export default function POSSystem() {
     } catch (error) {
       console.log('Error fetching customers (table may not exist yet):', error);
       setCustomers([]);
+    }
+  };
+
+  // Handle tab changes and ensure proper state management
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    
+    // Scroll to top when changing tabs
+    scrollToTop();
+    
+    // Clear any form states when switching tabs to avoid confusion
+    if (value === 'products') {
+      // Focus on products - cart remains as is
+    } else if (value === 'mobile-recharge') {
+      // Clear any previous recharge data if needed
+    } else if (value === 'mobile-repair') {
+      // Clear any previous repair data if needed
     }
   };
 
@@ -848,21 +874,22 @@ Thank you for choosing ElectroStore! 🙏
   const totals = calculateTotals();
 
   return (
-    <Tabs defaultValue="products" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="products" className="flex items-center gap-2">
-          <ShoppingCart className="h-4 w-4" />
-          Products POS
-        </TabsTrigger>
-        <TabsTrigger value="mobile-recharge" className="flex items-center gap-2">
-          <Smartphone className="h-4 w-4" />
-          Mobile Recharge
-        </TabsTrigger>
-        <TabsTrigger value="mobile-repair" className="flex items-center gap-2">
-          <Wrench className="h-4 w-4" />
-          Mobile Repair
-        </TabsTrigger>
-      </TabsList>
+    <div className="relative">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="products" className="flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4" />
+            Products POS
+          </TabsTrigger>
+          <TabsTrigger value="mobile-recharge" className="flex items-center gap-2">
+            <Smartphone className="h-4 w-4" />
+            Mobile Recharge
+          </TabsTrigger>
+          <TabsTrigger value="mobile-repair" className="flex items-center gap-2">
+            <Wrench className="h-4 w-4" />
+            Mobile Repair
+          </TabsTrigger>
+        </TabsList>
 
       <TabsContent value="products" className="mt-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1713,5 +1740,6 @@ Thank you for choosing ElectroStore! 🙏
         </div>
       </TabsContent>
     </Tabs>
+    </div>
   );
 }
