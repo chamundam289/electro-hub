@@ -284,6 +284,19 @@
     }
   }
 
+  .animate-shimmer {
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
   .container-fluid {
     @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }

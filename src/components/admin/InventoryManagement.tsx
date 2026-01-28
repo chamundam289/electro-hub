@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { TableShimmer, StatsCardShimmer } from '@/components/ui/shimmer';
 import { supabase } from '@/integrations/supabase/client';
 import { Warehouse, AlertTriangle, TrendingUp, TrendingDown, Plus, Minus, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,6 +14,7 @@ import { toast } from 'sonner';
 interface Product {
   id: string;
   name: string;
+  slug: string;
   sku?: string;
   stock_quantity: number;
   min_stock_level?: number;
@@ -54,6 +56,7 @@ export default function InventoryManagement() {
 
   const fetchProducts = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -65,6 +68,8 @@ export default function InventoryManagement() {
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -180,6 +185,58 @@ export default function InventoryManagement() {
   const lowStockCount = products.filter(p => p.stock_quantity <= (p.reorder_point || 10)).length;
   const outOfStockCount = products.filter(p => p.stock_quantity === 0).length;
   const totalValue = products.reduce((sum, p) => sum + (p.stock_quantity * (p.cost_price || p.price)), 0);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-48 bg-gray-200 rounded animate-shimmer"></div>
+          <div className="h-10 w-32 bg-gray-200 rounded animate-shimmer"></div>
+        </div>
+
+        {/* Inventory Summary Shimmer */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <StatsCardShimmer key={i} />
+          ))}
+        </div>
+
+        {/* Filters Shimmer */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-4 w-20 bg-gray-200 rounded animate-shimmer"></div>
+                  <div className="h-10 w-full bg-gray-200 rounded animate-shimmer"></div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Inventory Table Shimmer */}
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-32 bg-gray-200 rounded animate-shimmer"></div>
+          </CardHeader>
+          <CardContent>
+            <TableShimmer rows={8} columns={6} />
+          </CardContent>
+        </Card>
+
+        {/* Recent Transactions Shimmer */}
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-40 bg-gray-200 rounded animate-shimmer"></div>
+          </CardHeader>
+          <CardContent>
+            <TableShimmer rows={5} columns={5} />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

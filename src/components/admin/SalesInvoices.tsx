@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataPagination } from '@/components/ui/data-pagination';
+import { TableShimmer, StatsCardShimmer } from '@/components/ui/shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, Eye, Printer, Download, Filter, Calendar, Edit, Trash2 } from 'lucide-react';
@@ -447,7 +448,27 @@ export default function SalesInvoices() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading invoices...</div>
+            <div className="space-y-4">
+              {/* Statistics Cards Shimmer */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <StatsCardShimmer key={i} />
+                ))}
+              </div>
+              
+              {/* Filters Shimmer */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="h-4 w-20 bg-gray-200 rounded animate-shimmer"></div>
+                    <div className="h-10 w-full bg-gray-200 rounded animate-shimmer"></div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Table Shimmer */}
+              <TableShimmer rows={8} columns={7} />
+            </div>
           ) : (
             <>
               <div className="overflow-x-auto">

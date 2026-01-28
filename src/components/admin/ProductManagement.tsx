@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataPagination } from '@/components/ui/data-pagination';
 import { ImageUpload } from '@/components/ui/ImageUpload';
+import { TableShimmer } from '@/components/ui/shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Edit, Trash2, Star, Package } from 'lucide-react';
@@ -17,6 +18,7 @@ import { toast } from 'sonner';
 interface Product {
   id: string;
   name: string;
+  slug: string;
   description?: string;
   price: number;
   offer_price?: number;
@@ -514,56 +516,67 @@ export default function ProductManagement() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <Label>Search Products</Label>
-              <Input
-                placeholder="Search by name or SKU..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-4 w-20 bg-gray-200 rounded animate-shimmer"></div>
+                  <div className="h-10 w-full bg-gray-200 rounded animate-shimmer"></div>
+                </div>
+              ))}
             </div>
-            <div>
-              <Label>Category</Label>
-              <Select value={filterCategory} onValueChange={setFilterCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <Label>Search Products</Label>
+                <Input
+                  placeholder="Search by name or SKU..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Category</Label>
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Products</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="featured">Featured</SelectItem>
+                    <SelectItem value="low_stock">Low Stock</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button variant="outline" onClick={() => {
+                  setSearchTerm('');
+                  setFilterCategory('');
+                  setFilterStatus('all');
+                }}>
+                  Clear Filters
+                </Button>
+              </div>
             </div>
-            <div>
-              <Label>Status</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Products</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="featured">Featured</SelectItem>
-                  <SelectItem value="low_stock">Low Stock</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button variant="outline" onClick={() => {
-                setSearchTerm('');
-                setFilterCategory('');
-                setFilterStatus('all');
-              }}>
-                Clear Filters
-              </Button>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
@@ -577,9 +590,12 @@ export default function ProductManagement() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-              <p className="mt-2">Loading products...</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="h-6 w-32 bg-gray-200 rounded animate-shimmer"></div>
+                <div className="h-4 w-24 bg-gray-200 rounded animate-shimmer"></div>
+              </div>
+              <TableShimmer rows={10} columns={7} />
             </div>
           ) : (
             <>

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { StatsCardShimmer, CardShimmer, ListShimmer } from '@/components/ui/shimmer';
 
 interface DashboardStats {
   totalSales: number;
@@ -233,7 +234,48 @@ export default function DashboardOverview() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center p-8">Loading dashboard...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-48 bg-gray-200 rounded animate-shimmer"></div>
+          <div className="h-6 w-32 bg-gray-200 rounded animate-shimmer"></div>
+        </div>
+
+        {/* Key Metrics Shimmer */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <StatsCardShimmer key={i} />
+          ))}
+        </div>
+
+        {/* Additional Business Metrics Shimmer */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <StatsCardShimmer key={i} />
+          ))}
+        </div>
+
+        {/* Additional Metrics Shimmer */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <StatsCardShimmer key={i} />
+          ))}
+        </div>
+
+        {/* Financial Summary Shimmer */}
+        <CardShimmer />
+
+        {/* Recent Orders Shimmer */}
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-32 bg-gray-200 rounded animate-shimmer"></div>
+          </CardHeader>
+          <CardContent>
+            <ListShimmer count={5} />
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

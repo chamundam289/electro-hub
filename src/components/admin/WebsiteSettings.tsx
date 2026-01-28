@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FormShimmer, CardShimmer } from '@/components/ui/shimmer';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -216,9 +217,33 @@ export default function WebsiteSettings() {
 
       {loading && (
         <div className="flex items-center justify-center p-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-            <p className="text-sm text-gray-500">Loading website settings...</p>
+          <div className="space-y-6">
+            {/* Header Shimmer */}
+            <div className="flex items-center justify-between">
+              <div className="h-8 w-48 bg-gray-200 rounded animate-shimmer"></div>
+              <div className="h-10 w-32 bg-gray-200 rounded animate-shimmer"></div>
+            </div>
+
+            {/* Tabs Shimmer */}
+            <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-8 w-24 bg-gray-200 rounded animate-shimmer"></div>
+              ))}
+            </div>
+
+            {/* Form Cards Shimmer */}
+            <div className="space-y-6">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i}>
+                  <CardHeader>
+                    <div className="h-6 w-32 bg-gray-200 rounded animate-shimmer"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <FormShimmer />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { TableShimmer, StatsCardShimmer } from '@/components/ui/shimmer';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Search, Eye, Edit, Trash2, Package } from 'lucide-react';
 import { toast } from 'sonner';
@@ -52,6 +53,7 @@ interface Supplier {
 interface Product {
   id: string;
   name: string;
+  slug: string;
   sku?: string;
   cost_price?: number;
 }
@@ -716,7 +718,27 @@ export default function PurchaseInvoices() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading invoices...</div>
+            <div className="space-y-4">
+              {/* Statistics Cards Shimmer */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <StatsCardShimmer key={i} />
+                ))}
+              </div>
+              
+              {/* Filters Shimmer */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="h-4 w-20 bg-gray-200 rounded animate-shimmer"></div>
+                    <div className="h-10 w-full bg-gray-200 rounded animate-shimmer"></div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Table Shimmer */}
+              <TableShimmer rows={8} columns={7} />
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataPagination } from '@/components/ui/data-pagination';
+import { TableShimmer, StatsCardShimmer } from '@/components/ui/shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Eye, Edit, Printer, Search, Mail, MessageCircle, Trash2 } from 'lucide-react';
@@ -51,6 +52,7 @@ export default function OrderManagement() {
 
   const fetchOrders = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -69,6 +71,8 @@ export default function OrderManagement() {
       setOrders(data || []);
     } catch (error) {
       toast.error('Failed to load orders');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -492,6 +496,47 @@ ElectroStore - contact@electrostore.com`;
   const completedOrders = orders.filter(o => o.status === 'completed').length;
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
   const totalRevenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.total_amount || 0), 0);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-48 bg-gray-200 rounded animate-shimmer"></div>
+        </div>
+
+        {/* Order Statistics Shimmer */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <StatsCardShimmer key={i} />
+          ))}
+        </div>
+
+        {/* Filters Shimmer */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-4 w-20 bg-gray-200 rounded animate-shimmer"></div>
+                  <div className="h-10 w-full bg-gray-200 rounded animate-shimmer"></div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Orders Table Shimmer */}
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-32 bg-gray-200 rounded animate-shimmer"></div>
+          </CardHeader>
+          <CardContent>
+            <TableShimmer rows={8} columns={8} />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

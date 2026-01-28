@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 interface Product {
   id: string;
   name: string;
+  slug: string;
   price: number;
   stock_quantity: number;
   image_url?: string;

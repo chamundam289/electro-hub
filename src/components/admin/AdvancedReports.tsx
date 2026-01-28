@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ChartShimmer, TableShimmer, StatsCardShimmer } from '@/components/ui/shimmer';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   BarChart3, 
@@ -772,11 +773,68 @@ export default function AdvancedReports() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Activity className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Generating report...</p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-48 bg-gray-200 rounded animate-shimmer"></div>
+          <div className="flex gap-2">
+            <div className="h-10 w-24 bg-gray-200 rounded animate-shimmer"></div>
+            <div className="h-10 w-32 bg-gray-200 rounded animate-shimmer"></div>
+          </div>
         </div>
+
+        {/* Report Controls Shimmer */}
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-32 bg-gray-200 rounded animate-shimmer"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-4 w-20 bg-gray-200 rounded animate-shimmer"></div>
+                  <div className="h-10 w-full bg-gray-200 rounded animate-shimmer"></div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Statistics Cards Shimmer */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <StatsCardShimmer key={i} />
+          ))}
+        </div>
+
+        {/* Charts Shimmer */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-32 bg-gray-200 rounded animate-shimmer"></div>
+            </CardHeader>
+            <CardContent>
+              <ChartShimmer />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-32 bg-gray-200 rounded animate-shimmer"></div>
+            </CardHeader>
+            <CardContent>
+              <ChartShimmer />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tables Shimmer */}
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-32 bg-gray-200 rounded animate-shimmer"></div>
+          </CardHeader>
+          <CardContent>
+            <TableShimmer rows={8} columns={5} />
+          </CardContent>
+        </Card>
       </div>
     );
   }

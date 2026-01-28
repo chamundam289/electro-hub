@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataPagination } from '@/components/ui/data-pagination';
+import { TableShimmer, StatsCardShimmer } from '@/components/ui/shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Edit, Trash2, Search, Phone, Mail, MapPin, User } from 'lucide-react';
@@ -398,7 +399,20 @@ export default function CustomerManagement() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading customers...</div>
+            <div className="space-y-4">
+              {/* Filters Shimmer */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="h-4 w-20 bg-gray-200 rounded animate-shimmer"></div>
+                    <div className="h-10 w-full bg-gray-200 rounded animate-shimmer"></div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Table Shimmer */}
+              <TableShimmer rows={8} columns={6} />
+            </div>
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
