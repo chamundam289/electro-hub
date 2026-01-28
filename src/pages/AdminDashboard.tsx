@@ -18,7 +18,9 @@ import {
   Warehouse,
   Settings,
   TestTube,
-  PieChart
+  PieChart,
+  Smartphone,
+  Wrench
 } from 'lucide-react';
 
 // Import admin components
@@ -39,6 +41,8 @@ import SupplierManagement from '@/components/admin/SupplierManagement';
 import WebsiteSettings from '@/components/admin/WebsiteSettings';
 import AdvancedReports from '@/components/admin/AdvancedReports';
 import AdminTest from '@/components/admin/AdminTest';
+import MobileRecharge from '@/components/admin/MobileRecharge';
+import MobileRepair from '@/components/admin/MobileRepair';
 
 export default function AdminDashboard() {
   const { isAdmin, isLoading, user } = useAuth();
@@ -88,6 +92,8 @@ export default function AdminDashboard() {
     // Financial Management
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'expenses', label: 'Expenses', icon: DollarSign },
+    { id: 'mobile-recharge', label: 'Mobile Recharge', icon: Smartphone },
+    { id: 'mobile-repair', label: 'Mobile Repair', icon: Wrench },
     
     // Relationship Management
     { id: 'customers', label: 'Customers', icon: Users },
@@ -150,6 +156,8 @@ export default function AdminDashboard() {
               {activeTab === 'purchase-returns' && <PurchaseReturns />}
               {activeTab === 'payments' && <PaymentManagement />}
               {activeTab === 'expenses' && <ExpenseManagement />}
+              {activeTab === 'mobile-recharge' && <MobileRecharge />}
+              {activeTab === 'mobile-repair' && <MobileRepair />}
               {activeTab === 'leads' && <LeadManagement />}
               {activeTab === 'reports' && <AdvancedReports />}
               {activeTab === 'website-settings' && <WebsiteSettings />}

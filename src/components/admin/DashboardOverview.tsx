@@ -11,7 +11,8 @@ import {
   Receipt,
   CreditCard,
   UserPlus,
-  FileText
+  FileText,
+  Smartphone
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -25,6 +26,7 @@ interface DashboardStats {
   totalPayments: number;
   totalExpenses: number;
   totalSuppliers: number;
+  totalMobileRecharges: number;
   todaySales: number;
   monthSales: number;
   lowStockProducts: number;
@@ -64,6 +66,7 @@ export default function DashboardOverview() {
     totalPayments: 0,
     totalExpenses: 0,
     totalSuppliers: 0,
+    totalMobileRecharges: 0,
     todaySales: 0,
     monthSales: 0,
     lowStockProducts: 0,
@@ -101,6 +104,7 @@ export default function DashboardOverview() {
       let leadsResult = { data: [], error: null };
       let purchaseInvoicesResult = { data: [], error: null };
       let paymentsResult = { data: [], error: null };
+      let mobileRechargesResult = { data: [], error: null };
 
       try {
         suppliersResult = await supabase.from('suppliers').select('id');
@@ -130,6 +134,12 @@ export default function DashboardOverview() {
         paymentsResult = await supabase.from('payments').select('id, amount');
       } catch (error) {
         console.log('Payments table not available yet');
+      }
+
+      try {
+        mobileRechargesResult = await supabase.from('mobile_recharges').select('id');
+      } catch (error) {
+        console.log('Mobile recharges table not available yet');
       }
 
       // Calculate stats from existing data
@@ -183,6 +193,7 @@ export default function DashboardOverview() {
         totalPayments: (paymentsResult.data || []).reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0),
         totalExpenses: (expensesResult.data || []).reduce((sum: number, expense: any) => sum + (expense.total_amount || 0), 0),
         totalSuppliers: (suppliersResult.data || []).length,
+        totalMobileRecharges: (mobileRechargesResult.data || []).length,
         todaySales,
         monthSales,
         lowStockProducts: lowStockItems.length,
@@ -205,6 +216,7 @@ export default function DashboardOverview() {
         totalPayments: 0,
         totalExpenses: 0,
         totalSuppliers: 0,
+        totalMobileRecharges: 0,
         todaySales: 0,
         monthSales: 0,
         lowStockProducts: 0,
@@ -236,74 +248,92 @@ export default function DashboardOverview() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Sales</p>
-                <p className="text-3xl font-bold text-gray-900">₹{stats.totalSales.toLocaleString()}</p>
-                <p className="text-sm text-green-600 flex items-center mt-1">
-                  <TrendingUp className="h-4 w-4 mr-1" />
+                <p className="text-xs font-medium text-gray-600">Total Sales</p>
+                <p className="text-2xl font-bold text-gray-900">₹{stats.totalSales.toLocaleString()}</p>
+                <p className="text-xs text-green-600 flex items-center mt-1">
+                  <TrendingUp className="h-3 w-3 mr-1" />
                   +12.5% from last month
                 </p>
               </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <DollarSign className="h-6 w-6 text-green-600" />
+              <div className="p-2 bg-green-100 rounded-full">
+                <DollarSign className="h-5 w-5 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalOrders}</p>
-                <p className="text-sm text-green-600 flex items-center mt-1">
-                  <TrendingUp className="h-4 w-4 mr-1" />
+                <p className="text-xs font-medium text-gray-600">Total Orders</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalOrders}</p>
+                <p className="text-xs text-green-600 flex items-center mt-1">
+                  <TrendingUp className="h-3 w-3 mr-1" />
                   +8.2% from last month
                 </p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <ShoppingCart className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-blue-100 rounded-full">
+                <ShoppingCart className="h-5 w-5 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Products</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalProducts}</p>
-                <p className="text-sm text-red-600 flex items-center mt-1">
-                  <AlertTriangle className="h-4 w-4 mr-1" />
+                <p className="text-xs font-medium text-gray-600">Products</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalProducts}</p>
+                <p className="text-xs text-red-600 flex items-center mt-1">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
                   {stats.lowStockProducts} low stock
                 </p>
               </div>
-              <div className="p-3 bg-purple-100 rounded-full">
-                <Package className="h-6 w-6 text-purple-600" />
+              <div className="p-2 bg-purple-100 rounded-full">
+                <Package className="h-5 w-5 text-purple-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Customers</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalCustomers}</p>
-                <p className="text-sm text-green-600 flex items-center mt-1">
-                  <UserPlus className="h-4 w-4 mr-1" />
+                <p className="text-xs font-medium text-gray-600">Customers</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalCustomers}</p>
+                <p className="text-xs text-green-600 flex items-center mt-1">
+                  <UserPlus className="h-3 w-3 mr-1" />
                   +15 new this month
                 </p>
               </div>
-              <div className="p-3 bg-orange-100 rounded-full">
-                <Users className="h-6 w-6 text-orange-600" />
+              <div className="p-2 bg-orange-100 rounded-full">
+                <Users className="h-5 w-5 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600">Mobile Recharges</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalMobileRecharges}</p>
+                <p className="text-xs text-blue-600 flex items-center mt-1">
+                  <Smartphone className="h-3 w-3 mr-1" />
+                  Total recharges
+                </p>
+              </div>
+              <div className="p-2 bg-teal-100 rounded-full">
+                <Smartphone className="h-5 w-5 text-teal-600" />
               </div>
             </div>
           </CardContent>
@@ -313,72 +343,72 @@ export default function DashboardOverview() {
       {/* Additional Business Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Purchase Invoices</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalPurchaseInvoices}</p>
-                <p className="text-sm text-blue-600 flex items-center mt-1">
-                  <FileText className="h-4 w-4 mr-1" />
+                <p className="text-xs font-medium text-gray-600">Purchase Invoices</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalPurchaseInvoices}</p>
+                <p className="text-xs text-blue-600 flex items-center mt-1">
+                  <FileText className="h-3 w-3 mr-1" />
                   Total invoices
                 </p>
               </div>
-              <div className="p-3 bg-indigo-100 rounded-full">
-                <FileText className="h-6 w-6 text-indigo-600" />
+              <div className="p-2 bg-indigo-100 rounded-full">
+                <FileText className="h-5 w-5 text-indigo-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Payments</p>
-                <p className="text-3xl font-bold text-gray-900">₹{stats.totalPayments.toLocaleString()}</p>
-                <p className="text-sm text-green-600 flex items-center mt-1">
-                  <CreditCard className="h-4 w-4 mr-1" />
+                <p className="text-xs font-medium text-gray-600">Total Payments</p>
+                <p className="text-2xl font-bold text-gray-900">₹{stats.totalPayments.toLocaleString()}</p>
+                <p className="text-xs text-green-600 flex items-center mt-1">
+                  <CreditCard className="h-3 w-3 mr-1" />
                   All transactions
                 </p>
               </div>
-              <div className="p-3 bg-emerald-100 rounded-full">
-                <CreditCard className="h-6 w-6 text-emerald-600" />
+              <div className="p-2 bg-emerald-100 rounded-full">
+                <CreditCard className="h-5 w-5 text-emerald-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-                <p className="text-3xl font-bold text-gray-900">₹{stats.totalExpenses.toLocaleString()}</p>
-                <p className="text-sm text-red-600 flex items-center mt-1">
-                  <DollarSign className="h-4 w-4 mr-1" />
+                <p className="text-xs font-medium text-gray-600">Total Expenses</p>
+                <p className="text-2xl font-bold text-gray-900">₹{stats.totalExpenses.toLocaleString()}</p>
+                <p className="text-xs text-red-600 flex items-center mt-1">
+                  <DollarSign className="h-3 w-3 mr-1" />
                   Business costs
                 </p>
               </div>
-              <div className="p-3 bg-red-100 rounded-full">
-                <DollarSign className="h-6 w-6 text-red-600" />
+              <div className="p-2 bg-red-100 rounded-full">
+                <DollarSign className="h-5 w-5 text-red-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Suppliers</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalSuppliers}</p>
-                <p className="text-sm text-blue-600 flex items-center mt-1">
-                  <UserPlus className="h-4 w-4 mr-1" />
+                <p className="text-xs font-medium text-gray-600">Suppliers</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalSuppliers}</p>
+                <p className="text-xs text-blue-600 flex items-center mt-1">
+                  <UserPlus className="h-3 w-3 mr-1" />
                   Active suppliers
                 </p>
               </div>
-              <div className="p-3 bg-cyan-100 rounded-full">
-                <UserPlus className="h-6 w-6 text-cyan-600" />
+              <div className="p-2 bg-cyan-100 rounded-full">
+                <UserPlus className="h-5 w-5 text-cyan-600" />
               </div>
             </div>
           </CardContent>
@@ -388,37 +418,37 @@ export default function DashboardOverview() {
       {/* Additional Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Today's Sales</p>
-                <p className="text-2xl font-bold text-gray-900">₹{stats.todaySales.toLocaleString()}</p>
+                <p className="text-xs font-medium text-gray-600">Today's Sales</p>
+                <p className="text-xl font-bold text-gray-900">₹{stats.todaySales.toLocaleString()}</p>
               </div>
-              <Receipt className="h-8 w-8 text-green-500" />
+              <Receipt className="h-6 w-6 text-green-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">This Month</p>
-                <p className="text-2xl font-bold text-gray-900">₹{stats.monthSales.toLocaleString()}</p>
+                <p className="text-xs font-medium text-gray-600">This Month</p>
+                <p className="text-xl font-bold text-gray-900">₹{stats.monthSales.toLocaleString()}</p>
               </div>
-              <CreditCard className="h-8 w-8 text-blue-500" />
+              <CreditCard className="h-6 w-6 text-blue-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Orders</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.pendingOrders}</p>
+                <p className="text-xs font-medium text-gray-600">Pending Orders</p>
+                <p className="text-xl font-bold text-gray-900">{stats.pendingOrders}</p>
               </div>
-              <FileText className="h-8 w-8 text-orange-500" />
+              <FileText className="h-6 w-6 text-orange-500" />
             </div>
           </CardContent>
         </Card>
