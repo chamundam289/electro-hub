@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataPagination } from '@/components/ui/data-pagination';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Edit, Trash2, Star, Package, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, Package } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Product {
@@ -115,17 +116,47 @@ export default function ProductManagement() {
     setLoading(true);
 
     try {
+      // Generate a unique slug
+      const baseSlug = formData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      let uniqueSlug = baseSlug;
+      
+      // If editing, keep the same slug unless name changed significantly
+      if (editingProduct && editingProduct.name === formData.name) {
+        uniqueSlug = editingProduct.slug;
+      } else {
+        // Check if slug exists and make it unique
+        const { data: existingProduct } = await supabase
+          .from('products')
+          .select('slug')
+          .eq('slug', baseSlug)
+          .single();
+          
+        if (existingProduct && (!editingProduct || existingProduct.slug !== editingProduct.slug)) {
+          uniqueSlug = `${baseSlug}-${Date.now()}`;
+        }
+      }
+
       const productData = {
         name: formData.name,
-        slug: formData.name.toLowerCase().replace(/\s+/g, '-'),
+        slug: uniqueSlug,
         description: formData.description,
         price: formData.price,
         offer_price: formData.offer_price || null,
+        cost_price: formData.cost_price || null,
         stock_quantity: formData.stock_quantity,
+        min_stock_level: formData.min_stock_level || null,
+        max_stock_level: formData.max_stock_level || null,
+        reorder_point: formData.reorder_point || null,
+        sku: formData.sku || null,
+        unit: formData.unit,
+        tax_rate: formData.tax_rate,
+        image_url: formData.image_url || null,
         category_id: formData.category_id || null,
         is_visible: formData.is_visible,
         is_featured: formData.is_featured
       };
+
+      console.log('Saving product data:', productData);
 
       if (editingProduct) {
         const { error } = await supabase
@@ -133,14 +164,20 @@ export default function ProductManagement() {
           .update(productData)
           .eq('id', editingProduct.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
         toast.success('Product updated successfully');
       } else {
         const { error } = await supabase
           .from('products')
           .insert([productData]);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
         toast.success('Product created successfully');
       }
 
@@ -148,9 +185,21 @@ export default function ProductManagement() {
       setEditingProduct(null);
       resetForm();
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving product:', error);
-      toast.error('Failed to save product');
+      
+      if (error.code === '23505') {
+        // Unique constraint violation
+        if (error.message.includes('slug')) {
+          toast.error('Product name already exists. Please use a different name.');
+        } else if (error.message.includes('sku')) {
+          toast.error('SKU already exists. Please use a different SKU.');
+        } else {
+          toast.error('Duplicate entry. Please check your data.');
+        }
+      } else {
+        toast.error(`Failed to save product: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -417,11 +466,14 @@ export default function ProductManagement() {
               </div>
 
               <div>
-                <Label htmlFor="image_url">Image URL</Label>
-                <Input
-                  id="image_url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                <Label>Product Image</Label>
+                <ImageUpload
+                  onImageUploaded={(imageUrl) => setFormData({ ...formData, image_url: imageUrl })}
+                  currentImage={formData.image_url}
+                  folder="products"
+                  maxSize={5}
+                  allowedTypes={['image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
+                  showPreview={true}
                 />
               </div>
 
