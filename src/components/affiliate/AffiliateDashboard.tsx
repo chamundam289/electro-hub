@@ -1,5 +1,5 @@
  import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAffiliateAuth } from '@/hooks/useAffiliateAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -100,7 +100,7 @@ interface AffiliateReward {
 }
 
 export const AffiliateDashboard: React.FC = () => {
-  const { profile, signOut } = useAuth();
+  const { affiliateUser, signOut, loading: authLoading, isAuthenticated } = useAffiliateAuth();
   const [stats, setStats] = useState<AffiliateDashboardStats | null>(null);
   const [coupons, setCoupons] = useState<AffiliateCoupon[]>([]);
   const [commissions, setCommissions] = useState<AffiliateCommission[]>([]);
@@ -108,11 +108,34 @@ export const AffiliateDashboard: React.FC = () => {
   const [rewards, setRewards] = useState<AffiliateReward[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Redirect if not authenticated
+  if (authLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>Please log in to access your affiliate dashboard</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button onClick={() => window.location.href = '/affiliate/login'}>
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   useEffect(() => {
-    if (profile) {
+    if (affiliateUser) {
       fetchDashboardData();
     }
-  }, [profile]);
+  }, [affiliateUser]);
 
   const fetchDashboardData = async () => {
     try {
@@ -245,7 +268,7 @@ export const AffiliateDashboard: React.FC = () => {
           <div className="flex justify-between items-center py-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Affiliate Dashboard</h1>
-              <p className="text-gray-600">Welcome back, {profile?.full_name || profile?.email}</p>
+              <p className="text-gray-600">Welcome back, {affiliateUser?.full_name || affiliateUser?.email}</p>
             </div>
             <Button variant="outline" onClick={signOut}>
               <LogOut className="h-4 w-4 mr-2" />
