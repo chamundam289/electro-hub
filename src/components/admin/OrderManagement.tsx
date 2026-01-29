@@ -15,20 +15,33 @@ import { toast } from 'sonner';
 
 interface Order {
   id: string;
+  order_number: string;
   invoice_number?: string;
   customer_id?: string;
+  customer_name: string;
+  customer_phone: string;
+  shipping_name?: string;
+  shipping_address?: string;
+  shipping_city?: string;
+  shipping_zipcode?: string;
   subtotal?: number;
   tax_amount?: number;
   discount_amount?: number;
-  total_amount?: number;
+  total_amount: number;
   payment_method?: string;
   payment_status?: string;
   status: string;
+  order_source?: string; // Add order_source field
+  estimated_delivery?: string;
   notes?: string;
   created_at: string;
+  updated_at?: string;
   customers?: { name: string; phone?: string };
-  order_items?: Array<{
+  order_items: Array<{
+    id: string;
+    product_id?: string;
     product_name: string;
+    product_sku?: string;
     quantity: number;
     unit_price: number;
     line_total: number;
@@ -39,6 +52,21 @@ export default function OrderManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editForm, setEditForm] = useState({
+    customer_name: '',
+    customer_phone: '',
+    shipping_name: '',
+    shipping_address: '',
+    shipping_city: '',
+    shipping_zipcode: '',
+    payment_method: '',
+    payment_status: '',
+    status: '',
+    notes: '',
+    estimated_delivery: ''
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState('all');
@@ -57,9 +85,11 @@ export default function OrderManagement() {
         .from('orders')
         .select(`
           *,
-          customers(name, phone),
           order_items(
+            id,
+            product_id,
             product_name,
+            product_sku,
             quantity,
             unit_price,
             line_total
@@ -70,6 +100,7 @@ export default function OrderManagement() {
       if (error) throw error;
       setOrders(data || []);
     } catch (error) {
+      console.error('Error fetching orders:', error);
       toast.error('Failed to load orders');
     } finally {
       setLoading(false);
@@ -111,9 +142,10 @@ export default function OrderManagement() {
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
       const matchesSearch = 
+        (order.order_number && order.order_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (order.invoice_number && order.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (order.customers?.name && order.customers.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (order.customers?.phone && order.customers.phone.includes(searchTerm));
+        (order.customer_name && order.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (order.customer_phone && order.customer_phone.includes(searchTerm));
 
       const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
       const matchesPaymentStatus = filterPaymentStatus === 'all' || order.payment_status === filterPaymentStatus;
@@ -147,7 +179,7 @@ export default function OrderManagement() {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Order Invoice - ${order.invoice_number || order.id.slice(0, 8)}</title>
+          <title>Order Invoice - ${order.order_number}</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
@@ -176,27 +208,37 @@ export default function OrderManagement() {
           
           <div class="invoice-info">
             <div>
-              <strong>Invoice Number:</strong> ${order.invoice_number || order.id.slice(0, 8)}<br>
+              <strong>Order Number:</strong> ${order.order_number}<br>
+              <strong>Invoice Number:</strong> ${order.invoice_number || 'N/A'}<br>
               <strong>Order Date:</strong> ${new Date(order.created_at).toLocaleDateString()}<br>
               <strong>Order Time:</strong> ${new Date(order.created_at).toLocaleTimeString()}<br>
               <strong>Status:</strong> ${order.status.toUpperCase()}
             </div>
             <div>
               <strong>Payment Method:</strong> ${order.payment_method || 'N/A'}<br>
-              <strong>Payment Status:</strong> ${(order.payment_status || 'pending').toUpperCase()}
+              <strong>Payment Status:</strong> ${(order.payment_status || 'pending').toUpperCase()}<br>
+              ${order.estimated_delivery ? `<strong>Est. Delivery:</strong> ${new Date(order.estimated_delivery).toLocaleDateString()}<br>` : ''}
             </div>
           </div>
           
           <div class="customer-info">
-            <h3>Bill To:</h3>
-            <strong>${order.customers?.name || 'Walk-in Customer'}</strong><br>
-            ${order.customers?.phone ? `Phone: ${order.customers.phone}<br>` : ''}
+            <h3>Customer Details:</h3>
+            <strong>Name:</strong> ${order.customer_name}<br>
+            <strong>Phone:</strong> ${order.customer_phone}<br>
+            ${order.shipping_address ? `
+            <h3>Shipping Address:</h3>
+            <strong>Name:</strong> ${order.shipping_name || order.customer_name}<br>
+            <strong>Address:</strong> ${order.shipping_address}<br>
+            ${order.shipping_city ? `<strong>City:</strong> ${order.shipping_city}<br>` : ''}
+            ${order.shipping_zipcode ? `<strong>ZIP:</strong> ${order.shipping_zipcode}<br>` : ''}
+            ` : ''}
           </div>
           
           <table>
             <thead>
               <tr>
                 <th>Item</th>
+                <th>SKU</th>
                 <th>Qty</th>
                 <th>Rate</th>
                 <th>Amount</th>
@@ -206,6 +248,7 @@ export default function OrderManagement() {
               ${order.order_items?.map(item => `
                 <tr>
                   <td>${item.product_name}</td>
+                  <td>${item.product_sku || 'N/A'}</td>
                   <td>${item.quantity}</td>
                   <td>₹${item.unit_price.toFixed(2)}</td>
                   <td>₹${item.line_total.toFixed(2)}</td>
@@ -215,10 +258,10 @@ export default function OrderManagement() {
           </table>
           
           <table class="totals">
-            <tr><td>Subtotal:</td><td>₹${(order.subtotal || 0).toFixed(2)}</td></tr>
+            <tr><td>Subtotal:</td><td>₹${(order.subtotal || order.total_amount).toFixed(2)}</td></tr>
             ${order.tax_amount && order.tax_amount > 0 ? `<tr><td>Tax:</td><td>₹${order.tax_amount.toFixed(2)}</td></tr>` : ''}
             ${order.discount_amount && order.discount_amount > 0 ? `<tr><td>Discount:</td><td>-₹${order.discount_amount.toFixed(2)}</td></tr>` : ''}
-            <tr class="total-row"><td>Total:</td><td>₹${(order.total_amount || 0).toFixed(2)}</td></tr>
+            <tr class="total-row"><td>Total:</td><td>₹${order.total_amount.toFixed(2)}</td></tr>
           </table>
           
           ${order.notes ? `<div><strong>Notes:</strong> ${order.notes}</div>` : ''}
@@ -363,7 +406,7 @@ ElectroStore Team`;
   };
 
   const sendBillViaWhatsApp = (order: Order) => {
-    if (!order.customers?.phone) {
+    if (!order.customer_phone) {
       toast.error('Customer phone number not available for this order');
       return;
     }
@@ -371,32 +414,41 @@ ElectroStore Team`;
     try {
       const message = `🧾 *INVOICE FROM ELECTROSTORE* 🧾
 
-📋 *Invoice Details:*
-• Invoice #: ${order.invoice_number || order.id.slice(0, 8)}
+📋 *Order Details:*
+• Order #: ${order.order_number}
+• Invoice #: ${order.invoice_number || 'Not generated'}
 • Date: ${new Date(order.created_at).toLocaleDateString()}
 • Status: ${order.status.toUpperCase()}
+${order.estimated_delivery ? `• Est. Delivery: ${new Date(order.estimated_delivery).toLocaleDateString()}` : ''}
 
-👤 *Customer:* ${order.customers?.name || 'Walk-in Customer'}
+👤 *Customer:* ${order.customer_name}
+📞 *Phone:* ${order.customer_phone}
 
-🛍️ *Items:*
+${order.shipping_address ? `📍 *Shipping Address:*
+${order.shipping_name || order.customer_name}
+${order.shipping_address}
+${order.shipping_city ? `${order.shipping_city} ${order.shipping_zipcode || ''}` : ''}
+
+` : ''}🛍️ *Items:*
 ${order.order_items?.map(item => 
-  `• ${item.product_name} - Qty: ${item.quantity} - ₹${item.line_total.toFixed(2)}`
+  `• ${item.product_name}${item.product_sku ? ` (${item.product_sku})` : ''} - Qty: ${item.quantity} - ₹${item.line_total.toFixed(2)}`
 ).join('\n') || ''}
 
 💰 *Payment Summary:*
-• Subtotal: ₹${(order.subtotal || 0).toFixed(2)}
+• Subtotal: ₹${(order.subtotal || order.total_amount).toFixed(2)}
 ${order.tax_amount && order.tax_amount > 0 ? `• Tax: ₹${order.tax_amount.toFixed(2)}\n` : ''}
 ${order.discount_amount && order.discount_amount > 0 ? `• Discount: -₹${order.discount_amount.toFixed(2)}\n` : ''}
-• *Total: ₹${(order.total_amount || 0).toFixed(2)}*
+• *Total: ₹${order.total_amount.toFixed(2)}*
 
 💳 Payment Status: ${(order.payment_status || 'pending').toUpperCase()}
+💳 Payment Method: ${order.payment_method || 'Not specified'}
 
 ${order.notes ? `📝 Notes: ${order.notes}\n` : ''}
 
 Thank you for choosing ElectroStore! 🙏
 📧 contact@electrostore.com | 📞 +1234567890`;
 
-      const phoneNumber = order.customers.phone.replace(/[^\d]/g, '');
+      const phoneNumber = order.customer_phone.replace(/[^\d]/g, '');
       const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
       
@@ -407,25 +459,26 @@ Thank you for choosing ElectroStore! 🙏
   };
 
   const sendBillViaSMS = (order: Order) => {
-    if (!order.customers?.phone) {
+    if (!order.customer_phone) {
       toast.error('Customer phone number not available for this order');
       return;
     }
 
     try {
-      const message = `ElectroStore Invoice ${order.invoice_number || order.id.slice(0, 8)}
+      const message = `ElectroStore Order ${order.order_number}
 Date: ${new Date(order.created_at).toLocaleDateString()}
-Customer: ${order.customers?.name || 'Walk-in Customer'}
-Total: ₹${(order.total_amount || 0).toFixed(2)}
+Customer: ${order.customer_name}
+Total: ₹${order.total_amount.toFixed(2)}
 Status: ${order.status.toUpperCase()}
 Payment: ${(order.payment_status || 'pending').toUpperCase()}
+${order.estimated_delivery ? `Est. Delivery: ${new Date(order.estimated_delivery).toLocaleDateString()}` : ''}
 
 Thank you for your business!
 ElectroStore - contact@electrostore.com`;
 
       // For demo purposes, we'll create an SMS link
       // In production, you would integrate with SMS services like Twilio, AWS SNS, etc.
-      const smsUrl = `sms:${order.customers.phone}?body=${encodeURIComponent(message)}`;
+      const smsUrl = `sms:${order.customer_phone}?body=${encodeURIComponent(message)}`;
       window.open(smsUrl);
       
       toast.success('SMS client opened with invoice details');
@@ -435,9 +488,64 @@ ElectroStore - contact@electrostore.com`;
   };
 
   const handleEditOrder = (order: Order) => {
-    // For now, show a message that editing is not implemented
-    // In a full implementation, you would open an edit dialog with form fields
-    toast.info('Edit order functionality will be implemented in the next update. You can update order status using the dropdown.');
+    setEditingOrder(order);
+    setEditForm({
+      customer_name: order.customer_name || '',
+      customer_phone: order.customer_phone || '',
+      shipping_name: order.shipping_name || order.customer_name || '',
+      shipping_address: order.shipping_address || '',
+      shipping_city: order.shipping_city || '',
+      shipping_zipcode: order.shipping_zipcode || '',
+      payment_method: order.payment_method || '',
+      payment_status: order.payment_status || 'pending',
+      status: order.status || 'pending',
+      notes: order.notes || '',
+      estimated_delivery: order.estimated_delivery ? new Date(order.estimated_delivery).toISOString().split('T')[0] : ''
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEditOrder = async () => {
+    if (!editingOrder) return;
+
+    try {
+      setLoading(true);
+      
+      const updateData: any = {
+        customer_name: editForm.customer_name,
+        customer_phone: editForm.customer_phone,
+        shipping_name: editForm.shipping_name,
+        shipping_address: editForm.shipping_address,
+        shipping_city: editForm.shipping_city,
+        shipping_zipcode: editForm.shipping_zipcode,
+        payment_method: editForm.payment_method,
+        payment_status: editForm.payment_status,
+        status: editForm.status,
+        notes: editForm.notes,
+        updated_at: new Date().toISOString()
+      };
+
+      if (editForm.estimated_delivery) {
+        updateData.estimated_delivery = new Date(editForm.estimated_delivery).toISOString();
+      }
+
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', editingOrder.id);
+
+      if (error) throw error;
+
+      toast.success('Order updated successfully');
+      setIsEditDialogOpen(false);
+      setEditingOrder(null);
+      fetchOrders();
+    } catch (error) {
+      console.error('Error updating order:', error);
+      toast.error('Failed to update order');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteOrder = async (orderId: string, invoiceNumber?: string) => {
@@ -476,8 +584,10 @@ ElectroStore - contact@electrostore.com`;
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'default';
-      case 'pending': return 'secondary';
+      case 'delivered': return 'default';
+      case 'shipped': return 'secondary';
+      case 'processing': return 'secondary';
+      case 'pending': return 'destructive';
       case 'cancelled': return 'destructive';
       default: return 'outline';
     }
@@ -493,9 +603,11 @@ ElectroStore - contact@electrostore.com`;
   };
 
   const totalOrders = orders.length;
-  const completedOrders = orders.filter(o => o.status === 'completed').length;
+  const deliveredOrders = orders.filter(o => o.status === 'delivered').length;
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
-  const totalRevenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.total_amount || 0), 0);
+  const processingOrders = orders.filter(o => o.status === 'processing').length;
+  const shippedOrders = orders.filter(o => o.status === 'shipped').length;
+  const totalRevenue = orders.filter(o => o.status === 'delivered').reduce((sum, o) => sum + (o.total_amount || 0), 0);
 
   if (loading) {
     return (
@@ -559,23 +671,23 @@ ElectroStore - contact@electrostore.com`;
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">Delivered Orders</CardTitle>
             <FileText className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{completedOrders}</div>
-            <p className="text-xs text-muted-foreground">Successfully completed</p>
+            <div className="text-2xl font-bold text-green-600">{deliveredOrders}</div>
+            <p className="text-xs text-muted-foreground">Successfully delivered</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
-            <FileText className="h-4 w-4 text-orange-500" />
+            <CardTitle className="text-sm font-medium">Processing Orders</CardTitle>
+            <FileText className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{pendingOrders}</div>
-            <p className="text-xs text-muted-foreground">Awaiting processing</p>
+            <div className="text-2xl font-bold text-blue-600">{processingOrders}</div>
+            <p className="text-xs text-muted-foreground">Being processed</p>
           </CardContent>
         </Card>
 
@@ -586,7 +698,7 @@ ElectroStore - contact@electrostore.com`;
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">₹{totalRevenue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">From completed orders</p>
+            <p className="text-xs text-muted-foreground">From delivered orders</p>
           </CardContent>
         </Card>
       </div>
@@ -615,8 +727,10 @@ ElectroStore - contact@electrostore.com`;
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="shipped">Shipped</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
@@ -672,7 +786,7 @@ ElectroStore - contact@electrostore.com`;
           <CardTitle>Orders ({filteredOrders.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="w-full">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b">
@@ -690,14 +804,25 @@ ElectroStore - contact@electrostore.com`;
                   <tr key={order.id} className="border-b hover:bg-gray-50">
                     <td className="p-2">
                       <div>
-                        <p className="font-medium">{order.invoice_number || order.id.slice(0, 8)}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{order.order_number}</p>
+                          {order.order_source === 'pos' && (
+                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                              POS
+                            </Badge>
+                          )}
+                        </div>
+                        {order.invoice_number && (
+                          <p className="text-xs text-gray-500">Invoice: {order.invoice_number}</p>
+                        )}
                       </div>
                     </td>
                     <td className="p-2">
                       <div>
-                        <p className="font-medium">{order.customers?.name || 'Walk-in Customer'}</p>
-                        {order.customers?.phone && (
-                          <p className="text-xs text-gray-500">{order.customers.phone}</p>
+                        <p className="font-medium">{order.customer_name}</p>
+                        <p className="text-xs text-gray-500">{order.customer_phone}</p>
+                        {order.shipping_address && (
+                          <p className="text-xs text-gray-500">📍 {order.shipping_city || 'Shipping address provided'}</p>
                         )}
                       </div>
                     </td>
@@ -707,6 +832,9 @@ ElectroStore - contact@electrostore.com`;
                     </td>
                     <td className="p-2">
                       <p className="font-medium">₹{(order.total_amount || 0).toLocaleString()}</p>
+                      {order.estimated_delivery && (
+                        <p className="text-xs text-gray-500">📅 Est: {new Date(order.estimated_delivery).toLocaleDateString()}</p>
+                      )}
                     </td>
                     <td className="p-2">
                       <Badge variant={getPaymentStatusColor(order.payment_status)}>
@@ -725,9 +853,23 @@ ElectroStore - contact@electrostore.com`;
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                          {order.order_source === 'pos' ? (
+                            // POS orders: only payment-related statuses
+                            <>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="paid">Paid</SelectItem>
+                              <SelectItem value="cancelled">Cancelled</SelectItem>
+                            </>
+                          ) : (
+                            // E-commerce orders: full shipping workflow
+                            <>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="processing">Processing</SelectItem>
+                              <SelectItem value="shipped">Shipped</SelectItem>
+                              <SelectItem value="delivered">Delivered</SelectItem>
+                              <SelectItem value="cancelled">Cancelled</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </td>
@@ -828,7 +970,8 @@ ElectroStore - contact@electrostore.com`;
 
       {/* Order Details Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] dialog-content">
+          <div className="max-h-[80vh] overflow-y-auto p-1">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
             <DialogDescription>
@@ -839,29 +982,48 @@ ElectroStore - contact@electrostore.com`;
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <Label>Order Number</Label>
+                  <p className="font-medium">{selectedOrder.order_number}</p>
+                </div>
+                <div>
                   <Label>Invoice Number</Label>
-                  <p className="font-medium">{selectedOrder.invoice_number || selectedOrder.id.slice(0, 8)}</p>
+                  <p className="font-medium">{selectedOrder.invoice_number || 'Not generated'}</p>
                 </div>
                 <div>
                   <Label>Order Date</Label>
                   <p className="font-medium">{new Date(selectedOrder.created_at).toLocaleString()}</p>
                 </div>
                 <div>
-                  <Label>Customer</Label>
-                  <p className="font-medium">{selectedOrder.customers?.name || 'Walk-in Customer'}</p>
-                  {selectedOrder.customers?.phone && (
-                    <p className="text-sm text-gray-600">{selectedOrder.customers.phone}</p>
-                  )}
+                  <Label>Estimated Delivery</Label>
+                  <p className="font-medium">{selectedOrder.estimated_delivery ? new Date(selectedOrder.estimated_delivery).toLocaleDateString() : 'Not set'}</p>
                 </div>
                 <div>
-                  <Label>Notes</Label>
-                  <p className="font-medium">{selectedOrder.notes || 'No notes'}</p>
+                  <Label>Customer Name</Label>
+                  <p className="font-medium">{selectedOrder.customer_name}</p>
+                </div>
+                <div>
+                  <Label>Customer Phone</Label>
+                  <p className="font-medium">{selectedOrder.customer_phone}</p>
                 </div>
               </div>
 
+              {/* Shipping Address */}
+              {selectedOrder.shipping_address && (
+                <div>
+                  <Label>Shipping Address</Label>
+                  <div className="mt-2 p-3 bg-gray-50 rounded">
+                    <p className="font-medium">{selectedOrder.shipping_name || selectedOrder.customer_name}</p>
+                    <p>{selectedOrder.shipping_address}</p>
+                    {selectedOrder.shipping_city && (
+                      <p>{selectedOrder.shipping_city} {selectedOrder.shipping_zipcode}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {selectedOrder.notes && (
                 <div>
-                  <Label>Additional Notes</Label>
+                  <Label>Order Notes</Label>
                   <p className="font-medium">{selectedOrder.notes}</p>
                 </div>
               )}
@@ -874,6 +1036,7 @@ ElectroStore - contact@electrostore.com`;
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="text-left p-2">Product</th>
+                        <th className="text-left p-2">SKU</th>
                         <th className="text-left p-2">Qty</th>
                         <th className="text-left p-2">Price</th>
                         <th className="text-left p-2">Total</th>
@@ -883,6 +1046,7 @@ ElectroStore - contact@electrostore.com`;
                       {selectedOrder.order_items?.map((item, index) => (
                         <tr key={index} className="border-t">
                           <td className="p-2">{item.product_name}</td>
+                          <td className="p-2">{item.product_sku || 'N/A'}</td>
                           <td className="p-2">{item.quantity}</td>
                           <td className="p-2">₹{item.unit_price}</td>
                           <td className="p-2">₹{item.line_total}</td>
@@ -898,7 +1062,7 @@ ElectroStore - contact@electrostore.com`;
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>₹{(selectedOrder.subtotal || 0).toFixed(2)}</span>
+                    <span>₹{(selectedOrder.subtotal || selectedOrder.total_amount).toFixed(2)}</span>
                   </div>
                   {selectedOrder.tax_amount && selectedOrder.tax_amount > 0 && (
                     <div className="flex justify-between">
@@ -914,7 +1078,7 @@ ElectroStore - contact@electrostore.com`;
                   )}
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
                     <span>Total:</span>
-                    <span>₹{(selectedOrder.total_amount || 0).toFixed(2)}</span>
+                    <span>₹{selectedOrder.total_amount.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Payment Status:</span>
@@ -981,6 +1145,222 @@ ElectroStore - contact@electrostore.com`;
               </div>
             </div>
           )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Order Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] dialog-content">
+          <div className="max-h-[80vh] overflow-y-auto p-1">
+          <DialogHeader>
+            <DialogTitle>Edit Order</DialogTitle>
+            <DialogDescription>
+              Update order information, customer details, and shipping address.
+            </DialogDescription>
+          </DialogHeader>
+          {editingOrder && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Order Number</Label>
+                  <p className="font-medium text-muted-foreground">{editingOrder.order_number}</p>
+                </div>
+                <div>
+                  <Label>Invoice Number</Label>
+                  <p className="font-medium text-muted-foreground">{editingOrder.invoice_number || 'Not generated'}</p>
+                </div>
+              </div>
+
+              {/* Customer Information */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Customer Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="customer_name">Customer Name *</Label>
+                    <Input
+                      id="customer_name"
+                      value={editForm.customer_name}
+                      onChange={(e) => setEditForm({ ...editForm, customer_name: e.target.value })}
+                      placeholder="Enter customer name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="customer_phone">Customer Phone *</Label>
+                    <Input
+                      id="customer_phone"
+                      value={editForm.customer_phone}
+                      onChange={(e) => setEditForm({ ...editForm, customer_phone: e.target.value })}
+                      placeholder="Enter customer phone"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Shipping Information */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Shipping Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="shipping_name">Shipping Name</Label>
+                    <Input
+                      id="shipping_name"
+                      value={editForm.shipping_name}
+                      onChange={(e) => setEditForm({ ...editForm, shipping_name: e.target.value })}
+                      placeholder="Enter shipping name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="shipping_city">City</Label>
+                    <Input
+                      id="shipping_city"
+                      value={editForm.shipping_city}
+                      onChange={(e) => setEditForm({ ...editForm, shipping_city: e.target.value })}
+                      placeholder="Enter city"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="shipping_address">Shipping Address</Label>
+                  <Input
+                    id="shipping_address"
+                    value={editForm.shipping_address}
+                    onChange={(e) => setEditForm({ ...editForm, shipping_address: e.target.value })}
+                    placeholder="Enter shipping address"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="shipping_zipcode">ZIP Code</Label>
+                  <Input
+                    id="shipping_zipcode"
+                    value={editForm.shipping_zipcode}
+                    onChange={(e) => setEditForm({ ...editForm, shipping_zipcode: e.target.value })}
+                    placeholder="Enter ZIP code"
+                  />
+                </div>
+              </div>
+
+              {/* Order Status & Payment */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Order Status & Payment</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="status">Order Status</Label>
+                    <Select value={editForm.status} onValueChange={(value) => setEditForm({ ...editForm, status: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {editingOrder?.order_source === 'pos' ? (
+                          // POS orders: only payment-related statuses
+                          <>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="paid">Paid</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </>
+                        ) : (
+                          // E-commerce orders: full shipping workflow
+                          <>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="processing">Processing</SelectItem>
+                            <SelectItem value="shipped">Shipped</SelectItem>
+                            <SelectItem value="delivered">Delivered</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="payment_status">Payment Status</Label>
+                    <Select value={editForm.payment_status} onValueChange={(value) => setEditForm({ ...editForm, payment_status: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                        <SelectItem value="partially_paid">Partially Paid</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="payment_method">Payment Method</Label>
+                    <Input
+                      id="payment_method"
+                      value={editForm.payment_method}
+                      onChange={(e) => setEditForm({ ...editForm, payment_method: e.target.value })}
+                      placeholder="e.g., Cash on Delivery, Online Payment"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="estimated_delivery">Estimated Delivery</Label>
+                    <Input
+                      id="estimated_delivery"
+                      type="date"
+                      value={editForm.estimated_delivery}
+                      onChange={(e) => setEditForm({ ...editForm, estimated_delivery: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <Label htmlFor="notes">Order Notes</Label>
+                <textarea
+                  id="notes"
+                  className="w-full p-2 border border-gray-300 rounded-md resize-none"
+                  rows={3}
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  placeholder="Enter any additional notes about the order"
+                />
+              </div>
+
+              {/* Order Items (Read-only) */}
+              <div>
+                <Label>Order Items (Read-only)</Label>
+                <div className="border rounded mt-2">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="text-left p-2">Product</th>
+                        <th className="text-left p-2">Qty</th>
+                        <th className="text-left p-2">Price</th>
+                        <th className="text-left p-2">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {editingOrder.order_items?.map((item, index) => (
+                        <tr key={index} className="border-t">
+                          <td className="p-2">{item.product_name}</td>
+                          <td className="p-2">{item.quantity}</td>
+                          <td className="p-2">₹{item.unit_price}</td>
+                          <td className="p-2">₹{item.line_total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-2 text-right">
+                  <span className="font-bold text-lg">Total: ₹{editingOrder.total_amount.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveEditOrder} disabled={loading}>
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            </div>
+          )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

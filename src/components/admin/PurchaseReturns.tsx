@@ -368,7 +368,7 @@ export default function PurchaseReturns() {
               Create Return
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-4xl dialog-content">
             <DialogHeader>
               <DialogTitle>Create Purchase Return</DialogTitle>
             </DialogHeader>
@@ -619,7 +619,7 @@ export default function PurchaseReturns() {
               <TableShimmer rows={8} columns={6} />
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -681,7 +681,7 @@ export default function PurchaseReturns() {
 
       {/* View Return Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl dialog-content">
           <DialogHeader>
             <DialogTitle>Purchase Return Details - {selectedReturn?.return_number}</DialogTitle>
           </DialogHeader>
@@ -706,7 +706,7 @@ export default function PurchaseReturns() {
               {/* Return Items */}
               <div>
                 <h3 className="font-semibold mb-2">Returned Items</h3>
-                <div className="overflow-x-auto">
+                <div className="">
                   <table className="w-full border">
                     <thead>
                       <tr className="bg-gray-50">

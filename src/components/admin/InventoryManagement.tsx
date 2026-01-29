@@ -426,7 +426,7 @@ export default function InventoryManagement() {
             <CardTitle>Product Inventory</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="space-y-4">
               {filteredProducts.map((product) => {
                 const status = getStockStatus(product);
                 const StatusIcon = status.icon;
@@ -473,7 +473,7 @@ export default function InventoryManagement() {
             <CardTitle>Recent Transactions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+            <div className="space-y-3">
               {transactions.map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between p-3 border rounded">
                   <div className="flex items-center gap-3">

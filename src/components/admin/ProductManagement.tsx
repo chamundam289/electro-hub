@@ -340,7 +340,8 @@ export default function ProductManagement() {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] dialog-content">
+            <div className="max-h-[80vh] overflow-y-auto p-1">
             <DialogHeader>
               <DialogTitle>
                 {editingProduct ? 'Edit Product' : 'Add New Product'}
@@ -610,6 +611,7 @@ export default function ProductManagement() {
                 </Button>
               </div>
             </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -700,7 +702,7 @@ export default function ProductManagement() {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              <div className="w-full">
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="border-b">

@@ -240,7 +240,7 @@ export default function SimplePOSSystem() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredProducts.map((product) => (
                 <div
                   key={product.id}
@@ -348,7 +348,7 @@ export default function SimplePOSSystem() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
+            <div className="space-y-3">
               {cart.map((item) => (
                 <div key={item.id} className="flex items-center justify-between p-2 border rounded">
                   <div className="flex-1">

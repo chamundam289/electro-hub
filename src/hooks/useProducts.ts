@@ -27,29 +27,40 @@ export function useProducts(options?: { featured?: boolean; categoryId?: string;
   return useQuery({
     queryKey: ['products', options],
     queryFn: async () => {
-      let query = supabase
-        .from('products')
-        .select('*, categories(id, name, slug)')
-        .eq('is_visible', true)
-        .order('created_at', { ascending: false });
-      
-      if (options?.featured) {
-        query = query.eq('is_featured', true);
+      try {
+        let query = supabase
+          .from('products')
+          .select('*, categories(id, name, slug)')
+          .eq('is_visible', true)
+          .order('created_at', { ascending: false });
+        
+        if (options?.featured) {
+          query = query.eq('is_featured', true);
+        }
+        
+        if (options?.categoryId) {
+          query = query.eq('category_id', options.categoryId);
+        }
+        
+        if (options?.limit) {
+          query = query.limit(options.limit);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.warn('Products not available:', error.message);
+          return [];
+        }
+        
+        return data as Product[];
+      } catch (err) {
+        console.warn('Error fetching products:', err);
+        return [];
       }
-      
-      if (options?.categoryId) {
-        query = query.eq('category_id', options.categoryId);
-      }
-      
-      if (options?.limit) {
-        query = query.limit(options.limit);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      return data as Product[];
     },
+    retry: false,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -57,16 +68,27 @@ export function useProduct(slug: string) {
   return useQuery({
     queryKey: ['product', slug],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*, categories(id, name, slug)')
-        .eq('slug', slug)
-        .eq('is_visible', true)
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data as Product | null;
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*, categories(id, name, slug)')
+          .eq('slug', slug)
+          .eq('is_visible', true)
+          .maybeSingle();
+        
+        if (error) {
+          console.warn('Product not available:', error.message);
+          return null;
+        }
+        
+        return data as Product | null;
+      } catch (err) {
+        console.warn('Error fetching product:', err);
+        return null;
+      }
     },
     enabled: !!slug,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
   });
 }

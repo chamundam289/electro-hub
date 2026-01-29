@@ -16,14 +16,25 @@ export function useCategories() {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-      
-      if (error) throw error;
-      return data as Category[];
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
+        
+        if (error) {
+          console.warn('Categories not available:', error.message);
+          return [];
+        }
+        
+        return data as Category[];
+      } catch (err) {
+        console.warn('Error fetching categories:', err);
+        return [];
+      }
     },
+    retry: false,
+    staleTime: 5 * 60 * 1000,
   });
 }

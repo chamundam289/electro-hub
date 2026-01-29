@@ -205,7 +205,7 @@ export default function SalesInvoices() {
                   <td>${item.product_name}</td>
                   <td>${item.product_sku || '-'}</td>
                   <td>${item.quantity}</td>
-                  <td>${item.unit_price.toFixed(2)}</td>
+                  <td>₹{item.unit_price.toFixed(2)}</td>
                   <td>₹${(item.tax_amount || 0).toFixed(2)}</td>
                   <td>₹${item.line_total.toFixed(2)}</td>
                 </tr>
@@ -471,7 +471,7 @@ export default function SalesInvoices() {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              <div className="w-full">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
@@ -610,7 +610,7 @@ export default function SalesInvoices() {
               {/* Order Items */}
               <div>
                 <h3 className="font-semibold mb-2">Items</h3>
-                <div className="overflow-x-auto">
+                <div className="w-full">
                   <table className="w-full border">
                     <thead>
                       <tr className="bg-gray-50">

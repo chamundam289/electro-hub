@@ -259,7 +259,7 @@ export default function ExpenseManagement() {
               Add Expense
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl dialog-content">
             <DialogHeader>
               <DialogTitle>
                 {editingExpense ? 'Edit Expense' : 'Add New Expense'}
@@ -558,7 +558,7 @@ export default function ExpenseManagement() {
               <TableShimmer rows={8} columns={6} />
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">

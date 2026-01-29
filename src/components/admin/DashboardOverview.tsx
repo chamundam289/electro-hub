@@ -17,6 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { StatsCardShimmer, CardShimmer, ListShimmer } from '@/components/ui/shimmer';
+import DatabaseStatus from './DatabaseStatus';
 
 interface DashboardStats {
   totalSales: number;
@@ -567,6 +568,9 @@ export default function DashboardOverview() {
           </CardContent>
         </Card>
       )}
+
+      {/* Database Status */}
+      <DatabaseStatus />
 
       {/* Recent Orders */}
       <Card>

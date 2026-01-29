@@ -4,7 +4,7 @@ const features = [
   {
     icon: Truck,
     title: 'Free Shipping',
-    description: 'Free shipping on orders over $50',
+    description: 'Free shipping on orders over ₹50',
   },
   {
     icon: Shield,

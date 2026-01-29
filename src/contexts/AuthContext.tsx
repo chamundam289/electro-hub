@@ -6,7 +6,10 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isLoading: boolean;
+  isAdmin: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<{ error?: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -25,6 +28,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Check if user is admin (you can customize this logic)
+  const isAdmin = user?.email === 'admin@electrostore.com' || user?.email === 'chamundam289@gmail.com' || false;
+
   useEffect(() => {
     // Handle OAuth callback if there are hash fragments in URL
     const handleOAuthCallback = async () => {
@@ -32,15 +38,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const accessToken = hashParams.get('access_token');
       
       if (accessToken) {
-        console.log('OAuth callback detected, processing...', { accessToken: accessToken.substring(0, 20) + '...' });
-        
         // Wait for Supabase to process the session
         await new Promise(resolve => setTimeout(resolve, 1500));
         
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (session && !error) {
-          console.log('Session processed successfully in AuthContext');
           // Clean the URL and stay on home page
           window.history.replaceState({}, document.title, '/');
         }
@@ -61,15 +64,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       
       // Handle successful sign in - stay on home page
       if (event === 'SIGNED_IN' && session) {
-        console.log('User signed in successfully, staying on home page');
-        
         // Set flag for welcome animation
         localStorage.setItem('just_logged_in', 'true');
         
@@ -102,6 +102,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signInWithEmail = async (email: string, password: string) => {
+    try {
+      console.log('Attempting sign in with:', email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error('Sign in error:', error);
+        
+        // If user doesn't exist, provide helpful message
+        if (error.message.includes('Invalid login credentials')) {
+          return { 
+            error: { 
+              message: 'Invalid email or password. Please check your credentials or create admin user first.' 
+            } 
+          };
+        }
+        
+        return { error };
+      }
+      
+      console.log('Sign in successful:', data.user?.email);
+      return { data };
+    } catch (error) {
+      console.error('Error signing in with email:', error);
+      return { error };
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -116,7 +148,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     loading,
+    isLoading: loading,
+    isAdmin,
     signInWithGoogle,
+    signInWithEmail,
     signOut,
   };
 

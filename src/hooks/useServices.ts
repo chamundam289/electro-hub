@@ -16,14 +16,25 @@ export function useServices() {
   return useQuery({
     queryKey: ['services'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('services')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order');
-      
-      if (error) throw error;
-      return data as Service[];
+      try {
+        const { data, error } = await supabase
+          .from('services')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order');
+        
+        if (error) {
+          console.warn('Services not available:', error.message);
+          return [];
+        }
+        
+        return data as Service[];
+      } catch (err) {
+        console.warn('Error fetching services:', err);
+        return [];
+      }
     },
+    retry: false,
+    staleTime: 5 * 60 * 1000,
   });
 }

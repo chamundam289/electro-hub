@@ -395,7 +395,7 @@ export default function PurchaseInvoices() {
               Create Invoice
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-6xl dialog-content">
             <DialogHeader>
               <DialogTitle>
                 {editingInvoice ? 'Edit Purchase Invoice' : 'Create Purchase Invoice'}
@@ -740,7 +740,7 @@ export default function PurchaseInvoices() {
               <TableShimmer rows={8} columns={7} />
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -806,7 +806,7 @@ export default function PurchaseInvoices() {
 
       {/* View Invoice Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl dialog-content">
           <DialogHeader>
             <DialogTitle>Purchase Invoice - {selectedInvoice?.invoice_number}</DialogTitle>
           </DialogHeader>
@@ -833,7 +833,7 @@ export default function PurchaseInvoices() {
               {/* Purchase Items */}
               <div>
                 <h3 className="font-semibold mb-2">Items</h3>
-                <div className="overflow-x-auto">
+                <div className="">
                   <table className="w-full border">
                     <thead>
                       <tr className="bg-gray-50">

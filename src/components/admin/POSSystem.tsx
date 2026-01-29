@@ -595,6 +595,7 @@ Thank you for choosing ElectroStore! 🙏
           payment_method: paymentMethod,
           payment_status: 'paid',
           status: 'confirmed',
+          order_source: 'pos', // Mark this as POS order
           notes
         }])
         .select()
@@ -912,7 +913,7 @@ Thank you for choosing ElectroStore! 🙏
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 max-h-96">
               {filteredProducts.map((product) => (
                 <div
                   key={product.id}
@@ -1051,7 +1052,7 @@ Thank you for choosing ElectroStore! 🙏
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
+            <div className="space-y-3 max-h-64">
               {cart.map((item) => (
                 <div key={item.id} className="flex items-center justify-between p-2 border rounded">
                   <div className="flex-1">

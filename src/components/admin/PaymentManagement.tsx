@@ -342,7 +342,7 @@ export default function PaymentManagement() {
               Record Payment
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl dialog-content">
             <DialogHeader>
               <DialogTitle>Record Payment</DialogTitle>
               <DialogDescription>
@@ -675,7 +675,7 @@ export default function PaymentManagement() {
               <TableShimmer rows={8} columns={7} />
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">

@@ -21,7 +21,8 @@ import {
   TestTube,
   PieChart,
   Smartphone,
-  Wrench
+  Wrench,
+  Truck
 } from 'lucide-react';
 
 // Import admin components
@@ -29,6 +30,7 @@ import DashboardOverview from '@/components/admin/DashboardOverview';
 import POSSystem from '@/components/admin/POSSystem';
 import ProductManagement from '@/components/admin/ProductManagement';
 import OrderManagement from '@/components/admin/OrderManagement';
+import ShippingManagement from '@/components/admin/ShippingManagement';
 import CustomerManagement from '@/components/admin/CustomerManagement';
 import InventoryManagement from '@/components/admin/InventoryManagement';
 import SalesInvoices from '@/components/admin/SalesInvoices';
@@ -93,6 +95,7 @@ export default function AdminDashboard() {
     
     // Sales Management
     { id: 'orders', label: 'Orders', icon: FileText },
+    { id: 'shipping', label: 'Shipping', icon: Truck },
     { id: 'sales-invoices', label: 'Sales Invoices', icon: Receipt },
     { id: 'sales-returns', label: 'Sales Returns', icon: ArrowUpDown },
     
@@ -129,11 +132,11 @@ export default function AdminDashboard() {
         </div>
         
         {/* Scrollable Navigation - Only this part scrolls */}
-        <nav className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
+        <nav className="flex-1 overflow-y-auto admin-sidebar-nav">
           <div className="py-2">
             {menuItems.map((item, index) => {
               const Icon = item.icon;
-              const showSeparator = [1, 3, 6, 8, 10, 14, 15].includes(index); // Add separators after logical groups
+              const showSeparator = [1, 3, 7, 9, 11, 15, 16].includes(index); // Add separators after logical groups
               
               return (
                 <div key={item.id}>
@@ -166,7 +169,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content - Independent scrolling */}
-      <div className="admin-main-content flex-1 ml-64">
+      <div className="admin-main-content allow-scroll flex-1 ml-64">
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
             <ErrorBoundary>
@@ -175,6 +178,7 @@ export default function AdminDashboard() {
               {activeTab === 'products' && <ProductManagement />}
               {activeTab === 'inventory' && <InventoryManagement />}
               {activeTab === 'orders' && <OrderManagement />}
+              {activeTab === 'shipping' && <ShippingManagement />}
               {activeTab === 'customers' && <CustomerManagement />}
               {activeTab === 'suppliers' && <SupplierManagement />}
               {activeTab === 'sales-invoices' && <SalesInvoices />}

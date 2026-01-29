@@ -727,7 +727,7 @@ Thank you for choosing ElectroStore! 🙏
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              <div className="w-full">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">

@@ -18,14 +18,25 @@ export function useOffers() {
   return useQuery({
     queryKey: ['offers'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('offers')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as Offer[];
+      try {
+        const { data, error } = await supabase
+          .from('offers')
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.warn('Offers not available:', error.message);
+          return [];
+        }
+        
+        return data as Offer[];
+      } catch (err) {
+        console.warn('Error fetching offers:', err);
+        return [];
+      }
     },
+    retry: false,
+    staleTime: 5 * 60 * 1000,
   });
 }

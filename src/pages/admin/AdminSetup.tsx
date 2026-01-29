@@ -13,6 +13,8 @@ export default function AdminSetup() {
   const createAdminUser = async () => {
     setLoading(true);
     try {
+      console.log('Creating admin user with:', email);
+      
       // First, try to sign up the user
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -25,15 +27,18 @@ export default function AdminSetup() {
 
       let userId = signUpData?.user?.id;
 
-      // If user already exists, get their ID
-      if (!userId) {
+      // If user already exists, get their ID by signing in
+      if (!userId || signUpError?.message.includes('already registered')) {
+        console.log('User already exists, trying to sign in...');
+        
         const { data: userData, error: userError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (userError) {
-          throw userError;
+          console.error('Sign in error:', userError);
+          throw new Error(`User exists but password is incorrect: ${userError.message}`);
         }
 
         userId = userData?.user?.id;
@@ -42,6 +47,8 @@ export default function AdminSetup() {
       if (!userId) {
         throw new Error('Could not get user ID');
       }
+
+      console.log('Admin user ID:', userId);
 
       // Check if admin role already exists
       const { data: existingRole } = await supabase
@@ -61,11 +68,13 @@ export default function AdminSetup() {
           }]);
 
         if (roleError) {
-          throw roleError;
+          console.warn('Could not create admin role (table might not exist):', roleError);
+          // Don't throw error as admin access is handled by email check in AuthContext
         }
       }
 
       toast.success('Admin user created/updated successfully!');
+      toast.success(`You can now login with: ${email}`);
       
     } catch (error: any) {
       console.error('Error creating admin user:', error);

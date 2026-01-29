@@ -116,7 +116,7 @@ export default function MobileRepair() {
           table: 'mobile_repairs' 
         }, 
         (payload) => {
-          console.log('Mobile repair data changed:', payload);
+          // Mobile repair data changed - refresh data
           // Debounce the refresh to avoid rapid successive calls
           setTimeout(() => {
             fetchRepairs();
@@ -159,14 +159,12 @@ export default function MobileRepair() {
     // Debounce: Don't fetch if we just fetched within the last 2 seconds
     const now = Date.now();
     if (now - lastFetchTime < 2000) {
-      console.log('Skipping fetch - too soon after last fetch');
       return;
     }
     setLastFetchTime(now);
 
     try {
       setLoading(true);
-      console.log('Fetching mobile repairs...');
       
       // First, let's check if the table exists and has data
       const { count, error: countError } = await supabase
@@ -175,8 +173,6 @@ export default function MobileRepair() {
       
       if (countError) {
         console.error('Error checking table:', countError);
-      } else {
-        console.log('Table exists, total records:', count);
       }
       
       const { data, error } = await supabase
@@ -219,15 +215,11 @@ export default function MobileRepair() {
         return;
       }
       
-      console.log('Fetched repairs data:', data);
-      console.log('Number of repairs fetched:', data?.length || 0);
       setRepairs((data as any) || []);
       
       if (data && data.length > 0) {
-        console.log(`Successfully loaded ${data.length} repair records`);
         // Only show success toast on manual refresh (when user clicks refresh button)
       } else {
-        console.log('No repair records found');
         // Only show info toast on manual refresh
       }
     } catch (error) {
@@ -682,11 +674,9 @@ Thank you for choosing ElectroStore! 🙏
           <Button 
             variant="outline" 
             onClick={async () => {
-              console.log('Testing database connection...');
               const { data, error, count } = await supabase
                 .from('mobile_repairs' as any)
                 .select('*', { count: 'exact' });
-              console.log('Test result - Data:', data, 'Error:', error, 'Count:', count);
               if (error) {
                 toast.error(`Database error: ${error.message}`);
               } else {
@@ -905,7 +895,7 @@ Thank you for choosing ElectroStore! 🙏
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              <div className="w-full">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
@@ -1040,7 +1030,7 @@ Thank you for choosing ElectroStore! 🙏
       </Card>
       {/* Add Repair Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl dialog-content">
           <DialogHeader>
             <DialogTitle>New Mobile Repair Service</DialogTitle>
             <DialogDescription>
@@ -1184,7 +1174,7 @@ Thank you for choosing ElectroStore! 🙏
       </Dialog>
       {/* Edit Repair Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl dialog-content">
           <DialogHeader>
             <DialogTitle>Edit Mobile Repair Service</DialogTitle>
             <DialogDescription>
@@ -1373,7 +1363,7 @@ Thank you for choosing ElectroStore! 🙏
       </Dialog>
       {/* View Repair Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl dialog-content">
           <DialogHeader>
             <DialogTitle>Repair Service Details</DialogTitle>
             <DialogDescription>

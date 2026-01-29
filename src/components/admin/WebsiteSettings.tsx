@@ -22,8 +22,10 @@ import {
   Image,
   Smartphone,
   AlertTriangle,
-  MessageCircle
+  MessageCircle,
+  TestTube
 } from 'lucide-react';
+import OfferPopupTester from './OfferPopupTester';
 
 interface WebsiteSettings {
   id?: string;
@@ -613,6 +615,15 @@ export default function WebsiteSettings() {
                   <p className="text-xs text-gray-500 mt-1">This image will appear in the popup with WhatsApp and Later buttons below it</p>
                 </div>
               )}
+
+              {/* Offer Popup Tester */}
+              <div className="border-t pt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <TestTube className="h-5 w-5 text-blue-600" />
+                  <h4 className="font-medium text-gray-900">Testing & Debug</h4>
+                </div>
+                <OfferPopupTester />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

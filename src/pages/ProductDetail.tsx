@@ -2,6 +2,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,6 +29,7 @@ import { useState } from 'react';
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: product, isLoading, error } = useProduct(slug!);
   const { data: relatedProducts } = useProducts({ 
     categoryId: product?.category_id || undefined, 
@@ -109,8 +111,30 @@ const ProductDetail = () => {
   };
 
   const handleAddToWishlist = () => {
+    if (!user) {
+      toast.error('Please login to add items to wishlist', {
+        action: {
+          label: 'Login',
+          onClick: () => navigate('/login')
+        }
+      });
+      return;
+    }
     // For now, just show a toast. In a real app, this would save to database
     toast.success('Added to wishlist!');
+  };
+
+  const handleAddToCart = () => {
+    if (!user) {
+      toast.error('Please login to add items to cart', {
+        action: {
+          label: 'Login',
+          onClick: () => navigate('/login')
+        }
+      });
+      return;
+    }
+    toast.success('Added to cart!');
   };
 
   const productImages = product.image_url ? [product.image_url] : [];
@@ -134,10 +158,10 @@ const ProductDetail = () => {
         </nav>
 
         {/* Product Details */}
-        <div className="grid lg:grid-cols-2 gap-12 mb-16">
+        <div className="grid lg:grid-cols-2 gap-8 mb-16">
           {/* Product Images */}
           <div className="space-y-4">
-            <div className="aspect-square overflow-hidden rounded-xl bg-muted">
+            <div className="aspect-square overflow-hidden rounded-xl bg-muted relative">
               {productImages.length > 0 ? (
                 <img
                   src={productImages[selectedImage]}
@@ -149,6 +173,14 @@ const ProductDetail = () => {
                   <Package className="h-24 w-24 text-muted-foreground" />
                 </div>
               )}
+              
+              {/* Wishlist Button */}
+              <button
+                onClick={handleAddToWishlist}
+                className="absolute top-4 right-4 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-sm transition-colors"
+              >
+                <Heart className="w-5 h-5 text-gray-600 hover:text-red-500" />
+              </button>
             </div>
             
             {/* Thumbnail Images */}
@@ -198,11 +230,19 @@ const ProductDetail = () => {
             </div>
 
             {/* Product Name */}
-            <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{product.name}</h1>
+
+            {/* Rating (placeholder) */}
+            <div className="flex items-center gap-2">
+              <div className="flex text-yellow-400">
+                {'★'.repeat(4)}{'☆'.repeat(1)}
+              </div>
+              <span className="text-sm text-muted-foreground">(4.0) • 120 reviews</span>
+            </div>
 
             {/* Short Description */}
             {product.short_description && (
-              <p className="text-lg text-muted-foreground">{product.short_description}</p>
+              <p className="text-muted-foreground">{product.short_description}</p>
             )}
 
             {/* Price */}
@@ -210,15 +250,15 @@ const ProductDetail = () => {
               <div className="flex items-center gap-3">
                 {hasDiscount ? (
                   <>
-                    <span className="text-3xl font-bold text-foreground">₹{product.offer_price!.toFixed(2)}</span>
-                    <span className="text-xl text-muted-foreground line-through">₹{product.price.toFixed(2)}</span>
+                    <span className="text-2xl md:text-3xl font-bold text-foreground">₹{product.offer_price!.toFixed(2)}</span>
+                    <span className="text-lg text-muted-foreground line-through">₹{product.price.toFixed(2)}</span>
                     <Badge className="bg-red-100 text-red-800">
                       <Tag className="h-3 w-3 mr-1" />
                       {discountPercent}% OFF
                     </Badge>
                   </>
                 ) : (
-                  <span className="text-3xl font-bold text-foreground">₹{product.price.toFixed(2)}</span>
+                  <span className="text-2xl md:text-3xl font-bold text-foreground">₹{product.price.toFixed(2)}</span>
                 )}
               </div>
               {hasDiscount && (
@@ -237,15 +277,17 @@ const ProductDetail = () => {
                   size="sm"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   disabled={quantity <= 1}
+                  className="h-10 w-10 p-0"
                 >
                   -
                 </Button>
-                <span className="w-12 text-center font-medium">{quantity}</span>
+                <span className="w-12 text-center font-medium text-lg">{quantity}</span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
                   disabled={quantity >= product.stock_quantity}
+                  className="h-10 w-10 p-0"
                 >
                   +
                 </Button>
@@ -255,36 +297,40 @@ const ProductDetail = () => {
             {/* Action Buttons */}
             <div className="space-y-3">
               <div className="flex gap-3">
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1"
-                >
-                  <Button 
-                    size="lg" 
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
-                    disabled={product.stock_quantity === 0}
-                  >
-                    <MessageCircle className="h-5 w-5 mr-2" />
-                    Order on WhatsApp
-                  </Button>
-                </a>
                 <Button
-                  variant="outline"
                   size="lg"
-                  onClick={handleAddToWishlist}
+                  className="flex-1 bg-primary hover:bg-primary/90"
+                  disabled={product.stock_quantity === 0}
+                  onClick={handleAddToCart}
                 >
-                  <Heart className="h-5 w-5" />
+                  <ShoppingCart className="h-5 w-5 mr-2" />
+                  Add to Cart
                 </Button>
                 <Button
                   variant="outline"
                   size="lg"
                   onClick={handleShare}
+                  className="px-4"
                 >
                   <Share2 className="h-5 w-5" />
                 </Button>
               </div>
+              
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <Button 
+                  size="lg" 
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  disabled={product.stock_quantity === 0}
+                >
+                  <MessageCircle className="h-5 w-5 mr-2" />
+                  Order on WhatsApp
+                </Button>
+              </a>
               
               {product.stock_quantity === 0 && (
                 <p className="text-sm text-red-600 text-center">
@@ -296,18 +342,18 @@ const ProductDetail = () => {
             {/* Features */}
             <div className="grid grid-cols-3 gap-4 pt-6 border-t">
               <div className="text-center">
-                <Truck className="h-8 w-8 text-primary mx-auto mb-2" />
-                <p className="text-sm font-medium">Free Delivery</p>
-                <p className="text-xs text-muted-foreground">On orders above ₹500</p>
+                <Truck className="h-6 w-6 text-primary mx-auto mb-2" />
+                <p className="text-xs font-medium">Free Delivery</p>
+                <p className="text-xs text-muted-foreground">On orders above ₹50</p>
               </div>
               <div className="text-center">
-                <Shield className="h-8 w-8 text-primary mx-auto mb-2" />
-                <p className="text-sm font-medium">Warranty</p>
+                <Shield className="h-6 w-6 text-primary mx-auto mb-2" />
+                <p className="text-xs font-medium">Warranty</p>
                 <p className="text-xs text-muted-foreground">Manufacturer warranty</p>
               </div>
               <div className="text-center">
-                <MessageCircle className="h-8 w-8 text-primary mx-auto mb-2" />
-                <p className="text-sm font-medium">Support</p>
+                <MessageCircle className="h-6 w-6 text-primary mx-auto mb-2" />
+                <p className="text-xs font-medium">Support</p>
                 <p className="text-xs text-muted-foreground">24/7 customer care</p>
               </div>
             </div>
