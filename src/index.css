@@ -173,9 +173,36 @@
     overflow: hidden;
   }
 
+  /* ADMIN LAYOUT GLOBAL FIXES */
+  .admin-layout {
+    height: 100vh;
+    overflow: hidden; /* Disable body scroll for admin */
+    position: relative; /* Ensure proper positioning context */
+  }
+
   .admin-sidebar {
     height: 100vh;
     overflow: hidden;
+    position: fixed; /* Ensure sidebar stays fixed */
+    z-index: 30;
+  }
+
+  /* Force body to not scroll when admin layout is active */
+  body:has(.admin-layout),
+  body.admin-scroll-fixed {
+    overflow: hidden !important;
+    height: 100vh !important;
+    position: fixed !important;
+    width: 100% !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+
+  /* Also disable html scroll */
+  html:has(.admin-layout),
+  html:has(.admin-scroll-fixed) {
+    overflow: hidden !important;
+    height: 100vh !important;
   }
 
   /* ONLY allow main content to scroll */
@@ -185,20 +212,23 @@
     overflow-x: hidden !important;
     scrollbar-width: thin !important;
     -ms-overflow-style: auto !important;
+    position: relative; /* Ensure proper scroll context */
+    scroll-behavior: smooth; /* Smooth scrolling */
   }
 
   .admin-main-content::-webkit-scrollbar {
     display: block !important;
-    width: 6px !important;
+    width: 8px !important;
   }
 
   .admin-main-content::-webkit-scrollbar-track {
     background: hsl(var(--muted-foreground) / 0.1) !important;
+    border-radius: 4px !important;
   }
 
   .admin-main-content::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted-foreground) / 0.3) !important;
-    border-radius: 3px !important;
+    border-radius: 4px !important;
   }
 
   .admin-main-content::-webkit-scrollbar-thumb:hover {
@@ -398,29 +428,169 @@
     background-image: var(--gradient-primary);
   }
 
+  /* Dialog specific scrolling */
+  .dialog-scroll-container {
+    overflow-y: auto !important;
+    scrollbar-width: thin !important;
+    -ms-overflow-style: auto !important;
+    max-height: calc(90vh - 200px) !important; /* Account for header and footer */
+    padding-right: 8px !important; /* Space for scrollbar */
+  }
+
+  .dialog-scroll-container::-webkit-scrollbar {
+    display: block !important;
+    width: 8px !important;
+  }
+
+  .dialog-scroll-container::-webkit-scrollbar-track {
+    background: hsl(var(--muted-foreground) / 0.1) !important;
+    border-radius: 4px !important;
+  }
+
+  .dialog-scroll-container::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3) !important;
+    border-radius: 4px !important;
+  }
+
+  .dialog-scroll-container::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5) !important;
+  }
+
+  /* Line clamp utilities for text truncation */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
   /* FORCE SINGLE SCROLLBAR - NUCLEAR APPROACH */
-  /* Only specific containers can have scrollbars */
-  .allow-scroll {
+  /* Disable all scrollbars except specifically allowed ones */
+  * {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  /* Disable all overflow containers except allowed ones */
+  .admin-layout *,
+  body.admin-scroll-fixed * {
+    overflow: visible !important;
+  }
+
+  /* Force body to not scroll when admin layout is active */
+  body:has(.admin-layout),
+  body.admin-scroll-fixed {
+    overflow: hidden !important;
+    height: 100vh !important;
+    position: fixed !important;
+    width: 100% !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+
+  /* Also disable html scroll */
+  html:has(.admin-layout),
+  html:has(.admin-scroll-fixed) {
+    overflow: hidden !important;
+    height: 100vh !important;
+  }
+
+  /* Re-enable overflow only for specific containers */
+  .admin-layout .admin-main-content,
+  body.admin-scroll-fixed .admin-main-content {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .admin-layout .admin-sidebar-nav,
+  body.admin-scroll-fixed .admin-sidebar-nav {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .admin-layout .dialog-scroll-container,
+  body.admin-scroll-fixed .dialog-scroll-container {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .admin-layout .dialog-scroll-container {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Re-enable scrollbars only for specific containers */
+  .admin-main-content,
+  .admin-sidebar-nav,
+  .dialog-scroll-container,
+  body.admin-scroll-fixed .admin-main-content,
+  body.admin-scroll-fixed .admin-sidebar-nav,
+  body.admin-scroll-fixed .dialog-scroll-container {
     scrollbar-width: thin !important;
     -ms-overflow-style: auto !important;
   }
 
-  .allow-scroll::-webkit-scrollbar {
+  .admin-main-content::-webkit-scrollbar,
+  .admin-sidebar-nav::-webkit-scrollbar,
+  .dialog-scroll-container::-webkit-scrollbar,
+  body.admin-scroll-fixed .admin-main-content::-webkit-scrollbar,
+  body.admin-scroll-fixed .admin-sidebar-nav::-webkit-scrollbar,
+  body.admin-scroll-fixed .dialog-scroll-container::-webkit-scrollbar {
     display: block !important;
-    width: 6px !important;
   }
 
-  .allow-scroll::-webkit-scrollbar-track {
-    background: hsl(var(--muted-foreground) / 0.1) !important;
+  /* Disable Radix UI component scrollbars in admin */
+  .admin-layout [data-radix-select-content],
+  .admin-layout [data-radix-dropdown-menu-content],
+  .admin-layout [data-radix-popover-content],
+  .admin-layout [data-radix-scroll-area-viewport],
+  body.admin-scroll-fixed [data-radix-select-content],
+  body.admin-scroll-fixed [data-radix-dropdown-menu-content],
+  body.admin-scroll-fixed [data-radix-popover-content],
+  body.admin-scroll-fixed [data-radix-scroll-area-viewport] {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
 
-  .allow-scroll::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted-foreground) / 0.3) !important;
-    border-radius: 3px !important;
+  .admin-layout [data-radix-select-content]::-webkit-scrollbar,
+  .admin-layout [data-radix-dropdown-menu-content]::-webkit-scrollbar,
+  .admin-layout [data-radix-popover-content]::-webkit-scrollbar,
+  .admin-layout [data-radix-scroll-area-viewport]::-webkit-scrollbar,
+  body.admin-scroll-fixed [data-radix-select-content]::-webkit-scrollbar,
+  body.admin-scroll-fixed [data-radix-dropdown-menu-content]::-webkit-scrollbar,
+  body.admin-scroll-fixed [data-radix-popover-content]::-webkit-scrollbar,
+  body.admin-scroll-fixed [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+    display: none !important;
   }
 
-  .allow-scroll::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--muted-foreground) / 0.5) !important;
+  /* Disable table wrapper scroll in admin */
+  .admin-layout .relative.w-full.overflow-auto,
+  body.admin-scroll-fixed .relative.w-full.overflow-auto {
+    overflow: visible !important;
+  }
+
+  /* Disable any other overflow containers in admin */
+  .admin-layout div[class*="overflow-auto"]:not(.admin-main-content):not(.admin-sidebar-nav):not(.dialog-scroll-container),
+  body.admin-scroll-fixed div[class*="overflow-auto"]:not(.admin-main-content):not(.admin-sidebar-nav):not(.dialog-scroll-container) {
+    overflow: visible !important;
   }
 
   /* Hide scrollbar utility */

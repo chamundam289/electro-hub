@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { scrollToTop, ScrollToTop } from '@/components/ui/ScrollToTop';
+import { useAdminScrollFix } from '@/hooks/useAdminScrollFix';
 import { 
   BarChart3, 
   ShoppingCart, 
@@ -22,7 +23,8 @@ import {
   PieChart,
   Smartphone,
   Wrench,
-  Truck
+  Truck,
+  Coins
 } from 'lucide-react';
 
 // Import admin components
@@ -46,10 +48,12 @@ import AdvancedReports from '@/components/admin/AdvancedReports';
 import AdminTest from '@/components/admin/AdminTest';
 import MobileRecharge from '@/components/admin/MobileRecharge';
 import MobileRepair from '@/components/admin/MobileRepair';
+import LoyaltyManagement from '@/components/admin/LoyaltyManagement';
 
 export default function AdminDashboard() {
   const { isAdmin, isLoading, user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const { resetScrollPosition } = useAdminScrollFix();
 
   // Utility function to scroll to top
   const handleScrollToTop = () => {
@@ -59,7 +63,8 @@ export default function AdminDashboard() {
   // Scroll to top when navigating to different admin sections
   useEffect(() => {
     handleScrollToTop();
-  }, [activeTab]);
+    resetScrollPosition();
+  }, [activeTab, resetScrollPosition]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -106,6 +111,7 @@ export default function AdminDashboard() {
     // Financial Management
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'expenses', label: 'Expenses', icon: DollarSign },
+    { id: 'loyalty', label: 'Loyalty Coins', icon: Coins },
     { id: 'mobile-recharge', label: 'Mobile Recharge', icon: Smartphone },
     { id: 'mobile-repair', label: 'Mobile Repair', icon: Wrench },
     
@@ -168,8 +174,8 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Main Content - Independent scrolling */}
-      <div className="admin-main-content allow-scroll flex-1 ml-64">
+      {/* Main Content - Single scroll container */}
+      <div className="admin-main-content flex-1 ml-64">
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
             <ErrorBoundary>
@@ -187,6 +193,7 @@ export default function AdminDashboard() {
               {activeTab === 'purchase-returns' && <PurchaseReturns />}
               {activeTab === 'payments' && <PaymentManagement />}
               {activeTab === 'expenses' && <ExpenseManagement />}
+              {activeTab === 'loyalty' && <LoyaltyManagement />}
               {activeTab === 'mobile-recharge' && <MobileRecharge />}
               {activeTab === 'mobile-repair' && <MobileRepair />}
               {activeTab === 'leads' && <LeadManagement />}

@@ -57,7 +57,7 @@ export function DataPagination({
 
   if (totalItems === 0) {
     return (
-      <div className={`flex items-center justify-between px-2 ${className}`}>
+      <div className={`flex items-center justify-center py-4 px-2 ${className}`}>
         <div className="text-sm text-muted-foreground">
           No items to display
         </div>
@@ -66,11 +66,12 @@ export function DataPagination({
   }
 
   return (
-    <div className={`flex items-center justify-between px-2 ${className}`}>
-      <div className="flex items-center space-x-6 lg:space-x-8">
+    <div className={`flex flex-col space-y-4 px-2 py-4 ${className}`}>
+      {/* Top Row - Items per page and info */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
         {showItemsPerPage && (
           <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Rows per page</p>
+            <p className="text-sm font-medium whitespace-nowrap">Rows per page</p>
             <Select
               value={itemsPerPage.toString()}
               onValueChange={(value) => onItemsPerPageChange(Number(value))}
@@ -89,80 +90,83 @@ export function DataPagination({
           </div>
         )}
         
-        <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-          Page {currentPage} of {totalPages}
-        </div>
-        
         <div className="text-sm text-muted-foreground">
           Showing {startIndex + 1} to {endIndex} of {totalItems} entries
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
-        {/* First Page Button */}
-        <Button
-          variant="outline"
-          className="hidden h-8 w-8 p-0 lg:flex"
-          onClick={onFirstPage}
-          disabled={!hasPreviousPage}
-        >
-          <span className="sr-only">Go to first page</span>
-          <ChevronsLeft className="h-4 w-4" />
-        </Button>
+      {/* Bottom Row - Page navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+        <div className="flex items-center justify-center sm:justify-start">
+          <div className="text-sm font-medium">
+            Page {currentPage} of {totalPages}
+          </div>
+        </div>
 
-        {/* Previous Page Button */}
-        <Button
-          variant="outline"
-          className="h-8 w-8 p-0"
-          onClick={onPreviousPage}
-          disabled={!hasPreviousPage}
-        >
-          <span className="sr-only">Go to previous page</span>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center justify-center space-x-1">
+          {/* First Page Button */}
+          <Button
+            variant="outline"
+            className="h-8 w-8 p-0"
+            onClick={onFirstPage}
+            disabled={!hasPreviousPage}
+            title="Go to first page"
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
 
-        {/* Page Numbers */}
-        <Pagination>
-          <PaginationContent>
-            {pageNumbers.map((pageNumber, index) => (
-              <PaginationItem key={index}>
+          {/* Previous Page Button */}
+          <Button
+            variant="outline"
+            className="h-8 w-8 p-0"
+            onClick={onPreviousPage}
+            disabled={!hasPreviousPage}
+            title="Go to previous page"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+
+          {/* Page Numbers - Simplified for mobile */}
+          <div className="flex items-center space-x-1">
+            {pageNumbers.slice(0, 5).map((pageNumber, index) => (
+              <React.Fragment key={index}>
                 {pageNumber === -1 ? (
-                  <PaginationEllipsis />
+                  <span className="px-2 text-muted-foreground">...</span>
                 ) : (
-                  <PaginationLink
+                  <Button
+                    variant={pageNumber === currentPage ? "default" : "outline"}
+                    className="h-8 w-8 p-0"
                     onClick={() => onPageChange(pageNumber)}
-                    isActive={pageNumber === currentPage}
-                    className="cursor-pointer"
                   >
                     {pageNumber}
-                  </PaginationLink>
+                  </Button>
                 )}
-              </PaginationItem>
+              </React.Fragment>
             ))}
-          </PaginationContent>
-        </Pagination>
+          </div>
 
-        {/* Next Page Button */}
-        <Button
-          variant="outline"
-          className="h-8 w-8 p-0"
-          onClick={onNextPage}
-          disabled={!hasNextPage}
-        >
-          <span className="sr-only">Go to next page</span>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+          {/* Next Page Button */}
+          <Button
+            variant="outline"
+            className="h-8 w-8 p-0"
+            onClick={onNextPage}
+            disabled={!hasNextPage}
+            title="Go to next page"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
 
-        {/* Last Page Button */}
-        <Button
-          variant="outline"
-          className="hidden h-8 w-8 p-0 lg:flex"
-          onClick={onLastPage}
-          disabled={!hasNextPage}
-        >
-          <span className="sr-only">Go to last page</span>
-          <ChevronsRight className="h-4 w-4" />
-        </Button>
+          {/* Last Page Button */}
+          <Button
+            variant="outline"
+            className="h-8 w-8 p-0"
+            onClick={onLastPage}
+            disabled={!hasNextPage}
+            title="Go to last page"
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

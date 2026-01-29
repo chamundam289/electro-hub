@@ -297,7 +297,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Total Sales</p>
-                <p className="text-2xl font-bold text-gray-900">₹{stats.totalSales.toLocaleString()}</p>
+                <p className="text-lg font-bold text-gray-900">₹{stats.totalSales.toLocaleString()}</p>
                 <p className="text-xs text-green-600 flex items-center mt-1">
                   <TrendingUp className="h-3 w-3 mr-1" />
                   +12.5% from last month
@@ -315,7 +315,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Total Orders</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalOrders}</p>
+                <p className="text-lg font-bold text-gray-900">{stats.totalOrders}</p>
                 <p className="text-xs text-green-600 flex items-center mt-1">
                   <TrendingUp className="h-3 w-3 mr-1" />
                   +8.2% from last month
@@ -333,7 +333,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Products</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalProducts}</p>
+                <p className="text-lg font-bold text-gray-900">{stats.totalProducts}</p>
                 <p className="text-xs text-red-600 flex items-center mt-1">
                   <AlertTriangle className="h-3 w-3 mr-1" />
                   {stats.lowStockProducts} low stock
@@ -351,7 +351,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Customers</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalCustomers}</p>
+                <p className="text-lg font-bold text-gray-900">{stats.totalCustomers}</p>
                 <p className="text-xs text-green-600 flex items-center mt-1">
                   <UserPlus className="h-3 w-3 mr-1" />
                   +15 new this month
@@ -369,7 +369,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Mobile Recharges</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalMobileRecharges}</p>
+                <p className="text-lg font-bold text-gray-900">{stats.totalMobileRecharges}</p>
                 <p className="text-xs text-blue-600 flex items-center mt-1">
                   <Smartphone className="h-3 w-3 mr-1" />
                   Total recharges
@@ -390,7 +390,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Purchase Invoices</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalPurchaseInvoices}</p>
+                <p className="text-lg font-bold text-gray-900">{stats.totalPurchaseInvoices}</p>
                 <p className="text-xs text-blue-600 flex items-center mt-1">
                   <FileText className="h-3 w-3 mr-1" />
                   Total invoices
@@ -408,7 +408,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Total Payments</p>
-                <p className="text-2xl font-bold text-gray-900">₹{stats.totalPayments.toLocaleString()}</p>
+                <p className="text-lg font-bold text-gray-900">₹{stats.totalPayments.toLocaleString()}</p>
                 <p className="text-xs text-green-600 flex items-center mt-1">
                   <CreditCard className="h-3 w-3 mr-1" />
                   All transactions
@@ -426,7 +426,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Total Expenses</p>
-                <p className="text-2xl font-bold text-gray-900">₹{stats.totalExpenses.toLocaleString()}</p>
+                <p className="text-lg font-bold text-gray-900">₹{stats.totalExpenses.toLocaleString()}</p>
                 <p className="text-xs text-red-600 flex items-center mt-1">
                   <DollarSign className="h-3 w-3 mr-1" />
                   Business costs
@@ -444,7 +444,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Suppliers</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalSuppliers}</p>
+                <p className="text-lg font-bold text-gray-900">{stats.totalSuppliers}</p>
                 <p className="text-xs text-blue-600 flex items-center mt-1">
                   <UserPlus className="h-3 w-3 mr-1" />
                   Active suppliers
@@ -465,7 +465,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Today's Sales</p>
-                <p className="text-xl font-bold text-gray-900">₹{stats.todaySales.toLocaleString()}</p>
+                <p className="text-base font-bold text-gray-900">₹{stats.todaySales.toLocaleString()}</p>
               </div>
               <Receipt className="h-6 w-6 text-green-500" />
             </div>
@@ -477,7 +477,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">This Month</p>
-                <p className="text-xl font-bold text-gray-900">₹{stats.monthSales.toLocaleString()}</p>
+                <p className="text-base font-bold text-gray-900">₹{stats.monthSales.toLocaleString()}</p>
               </div>
               <CreditCard className="h-6 w-6 text-blue-500" />
             </div>
@@ -489,7 +489,7 @@ export default function DashboardOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600">Pending Orders</p>
-                <p className="text-xl font-bold text-gray-900">{stats.pendingOrders}</p>
+                <p className="text-base font-bold text-gray-900">{stats.pendingOrders}</p>
               </div>
               <FileText className="h-6 w-6 text-orange-500" />
             </div>
@@ -509,24 +509,24 @@ export default function DashboardOverview() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <p className="text-sm font-medium text-gray-600 mb-2">Total Revenue</p>
-              <p className="text-2xl font-bold text-green-600">₹{stats.totalSales.toLocaleString()}</p>
+              <p className="text-lg font-bold text-green-600">₹{stats.totalSales.toLocaleString()}</p>
               <p className="text-xs text-gray-500 mt-1">From sales</p>
             </div>
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <p className="text-sm font-medium text-gray-600 mb-2">Total Payments</p>
-              <p className="text-2xl font-bold text-blue-600">₹{stats.totalPayments.toLocaleString()}</p>
+              <p className="text-lg font-bold text-blue-600">₹{stats.totalPayments.toLocaleString()}</p>
               <p className="text-xs text-gray-500 mt-1">All transactions</p>
             </div>
             <div className="text-center p-4 bg-red-50 rounded-lg">
               <p className="text-sm font-medium text-gray-600 mb-2">Total Expenses</p>
-              <p className="text-2xl font-bold text-red-600">₹{stats.totalExpenses.toLocaleString()}</p>
+              <p className="text-lg font-bold text-red-600">₹{stats.totalExpenses.toLocaleString()}</p>
               <p className="text-xs text-gray-500 mt-1">Business costs</p>
             </div>
           </div>
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <div className="flex items-center justify-between">
               <span className="font-medium text-gray-700">Net Profit (Estimated)</span>
-              <span className={`text-xl font-bold ${
+              <span className={`text-lg font-bold ${
                 (stats.totalSales - stats.totalExpenses) >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
                 ₹{(stats.totalSales - stats.totalExpenses).toLocaleString()}

@@ -245,7 +245,8 @@ export function ImageUpload({
               <img
                 src={preview}
                 alt="Preview"
-                className="w-full h-48 object-cover"
+                className="w-full h-48 object-cover overflow-hidden"
+                style={{ overflow: 'hidden' }}
               />
               
               {/* Overlay with actions */}

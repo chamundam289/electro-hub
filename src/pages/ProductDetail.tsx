@@ -9,6 +9,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ProductCard } from '@/components/products/ProductCard';
+import { DualCoinsDisplay } from '@/components/loyalty/DualCoinsDisplay';
+import { ProductImageGallery } from '@/components/ui/ProductImageGallery';
 import { 
   ArrowLeft, 
   MessageCircle, 
@@ -37,7 +39,6 @@ const ProductDetail = () => {
   });
   const { data: settings } = useStoreSettings();
   
-  const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
   if (isLoading) {
@@ -137,8 +138,6 @@ const ProductDetail = () => {
     toast.success('Added to cart!');
   };
 
-  const productImages = product.image_url ? [product.image_url] : [];
-
   return (
     <MainLayout>
       <div className="container-fluid py-8">
@@ -159,50 +158,26 @@ const ProductDetail = () => {
 
         {/* Product Details */}
         <div className="grid lg:grid-cols-2 gap-8 mb-16">
-          {/* Product Images */}
+          {/* Product Images Gallery */}
           <div className="space-y-4">
-            <div className="aspect-square overflow-hidden rounded-xl bg-muted relative">
-              {productImages.length > 0 ? (
-                <img
-                  src={productImages[selectedImage]}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Package className="h-24 w-24 text-muted-foreground" />
-                </div>
-              )}
-              
-              {/* Wishlist Button */}
+            <ProductImageGallery
+              productId={product.id}
+              productName={product.name}
+              fallbackImage={product.image_url}
+              showThumbnails={true}
+              maxHeight="h-[400px] md:h-[500px] lg:h-[600px]"
+              className="w-full"
+            />
+            
+            {/* Wishlist Button Overlay */}
+            <div className="relative -mt-16 z-10 flex justify-end pr-4">
               <button
                 onClick={handleAddToWishlist}
-                className="absolute top-4 right-4 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-sm transition-colors"
+                className="w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-sm transition-colors"
               >
                 <Heart className="w-5 h-5 text-gray-600 hover:text-red-500" />
               </button>
             </div>
-            
-            {/* Thumbnail Images */}
-            {productImages.length > 1 && (
-              <div className="flex gap-2">
-                {productImages.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`aspect-square w-20 rounded-lg overflow-hidden border-2 ${
-                      selectedImage === index ? 'border-primary' : 'border-transparent'
-                    }`}
-                  >
-                    <img
-                      src={image}
-                      alt={`${product.name} ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Product Info */}
@@ -267,6 +242,18 @@ const ProductDetail = () => {
                 </p>
               )}
             </div>
+
+            {/* Loyalty Coins Display */}
+            <DualCoinsDisplay
+              productId={product.id}
+              productName={product.name}
+              productPrice={product.price}
+              offerPrice={product.offer_price}
+              mode="detail"
+              onCoinRedeem={(coinsRequired) => {
+                toast.info(`Coin redemption feature coming soon! Required: ${coinsRequired} coins`);
+              }}
+            />
 
             {/* Quantity Selector */}
             <div className="space-y-2">

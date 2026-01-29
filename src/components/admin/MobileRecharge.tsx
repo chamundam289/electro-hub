@@ -851,14 +851,17 @@ Thank you for choosing ElectroStore! 🙏
 
       {/* Add Recharge Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
             <DialogTitle>New Mobile Recharge</DialogTitle>
             <DialogDescription>
               Process a new mobile recharge for a customer.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
+          
+          <div className="flex-1 overflow-y-auto dialog-scroll-container px-1">
+            <div className="recharge-form space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="mobile">Mobile Number *</Label>
               <Input
@@ -949,16 +952,17 @@ Thank you for choosing ElectroStore! 🙏
                 onChange={(e) => setNewRecharge({...newRecharge, notes: e.target.value})}
                 placeholder="Additional notes (optional)"
               />
+              </div>
+              
+              <div className="flex justify-end space-x-2 mt-6">
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddRecharge} disabled={loading}>
+                  {loading ? 'Processing...' : 'Process Recharge'}
+                </Button>
+              </div>
             </div>
-          </div>
-          
-          <div className="flex justify-end space-x-2 mt-6">
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddRecharge} disabled={loading}>
-              {loading ? 'Processing...' : 'Process Recharge'}
-            </Button>
           </div>
         </DialogContent>
       </Dialog>

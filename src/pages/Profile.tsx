@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,26 +25,38 @@ import {
   Bell,
   CreditCard,
   HelpCircle,
-  Shield
+  Shield,
+  Coins
 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
+import { LoyaltyCoinsWallet } from '@/components/loyalty/LoyaltyCoinsWallet';
 import { toast } from 'sonner';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, signOut } = useAuth();
   const { getTotalItems: getCartCount } = useCart();
   const { getTotalItems: getWishlistCount } = useWishlist();
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Get active tab from URL params or default to 'profile'
+  const activeTab = searchParams.get('tab') || 'profile';
+  
   const [formData, setFormData] = useState({
     name: user?.user_metadata?.full_name || 'John Doe',
     email: user?.email || 'john.doe@example.com',
     phone: '+1 (555) 123-4567',
     address: '123 Main St, City, State 12345'
   });
+
+  // Handle tab changes
+  const handleTabChange = (tab: string) => {
+    setSearchParams({ tab });
+  };
 
   // Redirect to login if not authenticated
   if (!user) {
@@ -96,15 +108,23 @@ const Profile = () => {
       icon: ShoppingBag,
       label: 'My Orders',
       description: 'Track your orders',
-      href: '/orders',
+      action: () => navigate('/orders'),
       count: 3,
       color: 'bg-blue-100 text-blue-600'
+    },
+    {
+      icon: Coins,
+      label: 'Loyalty Coins',
+      description: 'Your coin balance',
+      action: () => handleTabChange('loyalty'),
+      count: 0, // Will be updated with actual coin balance
+      color: 'bg-yellow-100 text-yellow-600'
     },
     {
       icon: Heart,
       label: 'Wishlist',
       description: 'Your saved items',
-      href: '/wishlist',
+      action: () => navigate('/wishlist'),
       count: wishlistCount,
       color: 'bg-red-100 text-red-600'
     },
@@ -112,7 +132,7 @@ const Profile = () => {
       icon: ShoppingBag,
       label: 'Cart',
       description: 'Items in cart',
-      href: '/cart',
+      action: () => navigate('/cart'),
       count: cartCount,
       color: 'bg-green-100 text-green-600'
     }
@@ -178,171 +198,254 @@ const Profile = () => {
         </div>
 
         <div className="container-fluid py-6 space-y-6">
-          {/* Profile Card */}
-          <Card>
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <Avatar className="h-20 w-20">
-                      <AvatarImage src={user?.user_metadata?.avatar_url} />
-                      <AvatarFallback className="text-xl">
-                        {formData.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg">
-                      <Camera className="h-4 w-4 text-primary-foreground" />
-                    </button>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold">{formData.name}</h2>
-                    <p className="text-muted-foreground">{formData.email}</p>
-                    <Badge variant="secondary" className="mt-1">
-                      Verified Account
-                    </Badge>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setIsEditing(!isEditing)}
-                >
-                  {isEditing ? <X className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
-                </Button>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-4">
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="address">Address</Label>
-                    <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    />
-                  </div>
-                  <Button onClick={handleSave} className="w-full">
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Changes
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    <span>{formData.name}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 text-muted-foreground" />
-                    <span>{formData.email}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-5 w-5 text-muted-foreground" />
-                    <span>{formData.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
-                    <span>{formData.address}</span>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4">
-                {quickActions.map((action) => (
-                  <Link
-                    key={action.label}
-                    to={action.href}
-                    className="flex flex-col items-center p-4 rounded-lg border hover:bg-gray-50 transition-colors"
-                  >
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${action.color}`}>
-                      <action.icon className="h-6 w-6" />
-                    </div>
-                    <span className="font-medium text-sm text-center">{action.label}</span>
-                    {action.count > 0 && (
-                      <Badge variant="secondary" className="mt-1 text-xs">
-                        {action.count}
-                      </Badge>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Menu Items */}
-          <Card>
-            <CardContent className="p-0">
-              {menuItems.map((item, index) => (
-                <div key={item.label}>
-                  <Link
-                    to={item.href}
-                    className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <item.icon className="h-5 w-5 text-gray-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{item.label}</h3>
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
-                      </div>
-                    </div>
-                    <ArrowLeft className="h-4 w-4 text-muted-foreground rotate-180" />
-                  </Link>
-                  {index < menuItems.length - 1 && <Separator />}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Sign Out */}
+          {/* Tab Navigation */}
           <Card>
             <CardContent className="p-4">
-              <Button
-                variant="outline"
-                className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                onClick={handleSignOut}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={activeTab === 'profile' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleTabChange('profile')}
+                  className="flex items-center gap-2"
+                >
+                  <User className="h-4 w-4" />
+                  Profile
+                </Button>
+                <Button
+                  variant={activeTab === 'loyalty' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleTabChange('loyalty')}
+                  className="flex items-center gap-2"
+                >
+                  <Coins className="h-4 w-4" />
+                  Loyalty Coins
+                </Button>
+                <Button
+                  variant={activeTab === 'orders' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleTabChange('orders')}
+                  className="flex items-center gap-2"
+                >
+                  <ShoppingBag className="h-4 w-4" />
+                  Orders
+                </Button>
+                <Button
+                  variant={activeTab === 'settings' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleTabChange('settings')}
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </Button>
+              </div>
             </CardContent>
           </Card>
+
+          {/* Tab Content */}
+          {activeTab === 'profile' && (
+            <>
+              {/* Profile Card */}
+              <Card>
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <Avatar className="h-20 w-20">
+                          <AvatarImage src={user?.user_metadata?.avatar_url} />
+                          <AvatarFallback className="text-xl">
+                            {formData.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                          <Camera className="h-4 w-4 text-primary-foreground" />
+                        </button>
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold">{formData.name}</h2>
+                        <p className="text-muted-foreground">{formData.email}</p>
+                        <Badge variant="secondary" className="mt-1">
+                          Verified Account
+                        </Badge>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsEditing(!isEditing)}
+                    >
+                      {isEditing ? <X className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  {isEditing ? (
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="phone">Phone</Label>
+                        <Input
+                          id="phone"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="address">Address</Label>
+                        <Input
+                          id="address"
+                          value={formData.address}
+                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        />
+                      </div>
+                      <Button onClick={handleSave} className="w-full">
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Changes
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <User className="h-5 w-5 text-muted-foreground" />
+                        <span>{formData.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Mail className="h-5 w-5 text-muted-foreground" />
+                        <span>{formData.email}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Phone className="h-5 w-5 text-muted-foreground" />
+                        <span>{formData.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                        <span>{formData.address}</span>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {quickActions.map((action) => (
+                      <button
+                        key={action.label}
+                        onClick={action.action}
+                        className="flex flex-col items-center p-4 rounded-lg border hover:bg-gray-50 transition-colors"
+                      >
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${action.color}`}>
+                          <action.icon className="h-6 w-6" />
+                        </div>
+                        <span className="font-medium text-sm text-center">{action.label}</span>
+                        {action.count > 0 && (
+                          <Badge variant="secondary" className="mt-1 text-xs">
+                            {action.count}
+                          </Badge>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {/* Loyalty Coins Tab */}
+          {activeTab === 'loyalty' && (
+            <LoyaltyCoinsWallet />
+          )}
+
+          {/* Orders Tab */}
+          {activeTab === 'orders' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingBag className="h-5 w-5" />
+                  My Orders
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">No orders yet</p>
+                  <Button onClick={() => navigate('/')}>
+                    Start Shopping
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === 'settings' && (
+            <>
+              {/* Menu Items */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Account Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {menuItems.map((item, index) => (
+                    <div key={item.label}>
+                      <Link
+                        to={item.href}
+                        className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <item.icon className="h-5 w-5 text-gray-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium">{item.label}</h3>
+                            <p className="text-sm text-muted-foreground">{item.description}</p>
+                          </div>
+                        </div>
+                        <ArrowLeft className="h-4 w-4 text-muted-foreground rotate-180" />
+                      </Link>
+                      {index < menuItems.length - 1 && <Separator />}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Sign Out */}
+              <Card>
+                <CardContent className="p-4">
+                  <Button
+                    variant="outline"
+                    className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </div>
     </MainLayout>

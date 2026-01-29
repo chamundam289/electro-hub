@@ -361,11 +361,13 @@ export default function SalesReturns() {
               Create Return
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl dialog-content">
-            <DialogHeader>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0 pb-4 border-b">
               <DialogTitle>Create Sales Return</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            
+            <div className="flex-1 overflow-y-auto dialog-scroll-container px-1">
+              <form onSubmit={handleSubmit} className="sales-return-form space-y-6 py-4">
               {/* Order Selection */}
               <div>
                 <Label htmlFor="order">Select Order *</Label>
@@ -489,15 +491,16 @@ export default function SalesReturns() {
                 </>
               )}
 
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={loading || !selectedOrder}>
-                  {loading ? 'Creating...' : 'Create Return'}
-                </Button>
-              </div>
-            </form>
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={loading || !selectedOrder}>
+                    {loading ? 'Creating...' : 'Create Return'}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

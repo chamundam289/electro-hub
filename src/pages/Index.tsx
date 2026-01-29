@@ -2,6 +2,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { HeroSection } from '@/components/home/HeroSection';
 import { CategoriesSection } from '@/components/home/CategoriesSection';
 import { FeaturedProducts } from '@/components/home/FeaturedProducts';
+import { LoyaltyCoinsSection } from '@/components/home/LoyaltyCoinsSection';
 import { DealsSection } from '@/components/home/DealsSection';
 import { WhyChooseUs } from '@/components/home/WhyChooseUs';
 import OAuthRedirectHandler from '@/components/auth/OAuthRedirectHandler';
@@ -33,6 +34,7 @@ const Index = () => {
         <HeroSection />
         <CategoriesSection />
         <FeaturedProducts />
+        <LoyaltyCoinsSection />
         <DealsSection />
         <WhyChooseUs />
       </MainLayout>

@@ -331,14 +331,15 @@ export default function ShippingManagement() {
               Create Shipment
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <div className="p-4">
-            <DialogHeader>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0 pb-4 border-b">
               <DialogTitle>Create New Shipment</DialogTitle>
               <DialogDescription>
                 Create a new shipment for an order that needs to be shipped.
               </DialogDescription>
             </DialogHeader>
+            
+            <div className="flex-1 overflow-y-auto dialog-scroll-container px-1">
 
             {/* Debug Information */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -362,7 +363,8 @@ export default function ShippingManagement() {
                 )}
               </div>
             </div>
-            <form onSubmit={handleCreateShipment} className="space-y-4">
+            
+            <form onSubmit={handleCreateShipment} className="shipping-form space-y-6 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Order *</Label>
@@ -807,16 +809,17 @@ export default function ShippingManagement() {
 
       {/* View Shipment Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <div className="p-4">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
             <DialogTitle>Shipment Details</DialogTitle>
             <DialogDescription>
               Complete shipment information and tracking history.
             </DialogDescription>
           </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto dialog-scroll-container px-1">
           {selectedShipment && (
-            <div className="space-y-6">
+            <div className="shipment-details space-y-6 py-4">
               {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>

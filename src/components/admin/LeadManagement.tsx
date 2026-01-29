@@ -284,13 +284,15 @@ export default function LeadManagement() {
               Add Lead
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0 pb-4 border-b">
               <DialogTitle>
                 {editingLead ? 'Edit Lead' : 'Add New Lead'}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            
+            <div className="flex-1 overflow-y-auto dialog-scroll-container px-1">
+              <form onSubmit={handleSubmit} className="lead-form space-y-6 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Name *</Label>
@@ -430,15 +432,16 @@ export default function LeadManagement() {
                 />
               </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Saving...' : editingLead ? 'Update' : 'Create'}
-                </Button>
-              </div>
-            </form>
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? 'Saving...' : editingLead ? 'Update' : 'Create'}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

@@ -8,12 +8,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataPagination } from '@/components/ui/data-pagination';
-import { ImageUpload } from '@/components/ui/ImageUpload';
+import { MultipleImageUpload } from '@/components/ui/MultipleImageUpload';
 import { TableShimmer } from '@/components/ui/shimmer';
 import { usePagination } from '@/hooks/usePagination';
+import { useProductImages } from '@/hooks/useProductImages';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Edit, Trash2, Star, Package } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, Package, Coins } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface ProductImage {
+  id?: string;
+  image_url: string;
+  image_alt?: string;
+  display_order: number;
+  is_primary: boolean;
+  file_name?: string;
+}
 
 interface Product {
   id: string;
@@ -52,7 +62,8 @@ export default function ProductManagement() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(false);
-  const [imageUrlValid, setImageUrlValid] = useState(true);
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
+  const { saveImages } = useProductImages();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -67,10 +78,12 @@ export default function ProductManagement() {
     sku: '',
     unit: 'pcs',
     tax_rate: 18,
-    image_url: '',
     category_id: '',
     is_visible: true,
-    is_featured: false
+    is_featured: false,
+    coins_earned_per_purchase: 0,
+    coins_required_to_buy: 0,
+    is_coin_purchase_enabled: false
   });
 
   useEffect(() => {
@@ -114,38 +127,18 @@ export default function ProductManagement() {
     }
   };
 
-  // Helper function to validate image URL
-  const isValidImageUrl = (url: string): boolean => {
-    if (!url) return true; // Empty URL is valid (optional)
-    
-    try {
-      const urlObj = new URL(url);
-      const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-      const pathname = urlObj.pathname.toLowerCase();
-      
-      return validExtensions.some(ext => pathname.endsWith(ext)) || 
-             pathname.includes('/image/') || 
-             urlObj.hostname.includes('imgur') ||
-             urlObj.hostname.includes('cloudinary') ||
-             urlObj.hostname.includes('supabase');
-    } catch {
-      return false;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Validate image URL if provided
-      if (formData.image_url && !isValidImageUrl(formData.image_url)) {
-        toast.error('Please enter a valid image URL');
-        setLoading(false);
-        return;
-      }
       // Generate a unique slug
-      const baseSlug = formData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const baseSlug = formData.name.toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+        .replace(/\s+/g, '-')         // Replace spaces with hyphens
+        .replace(/-+/g, '-')          // Replace multiple hyphens with single
+        .trim();                      // Remove leading/trailing spaces
+      
       let uniqueSlug = baseSlug;
       
       // If editing, keep the same slug unless name changed significantly
@@ -153,16 +146,25 @@ export default function ProductManagement() {
         uniqueSlug = editingProduct.slug;
       } else {
         // Check if slug exists and make it unique
-        const { data: existingProduct } = await supabase
-          .from('products')
-          .select('slug')
-          .eq('slug', baseSlug)
-          .single();
-          
-        if (existingProduct && (!editingProduct || existingProduct.slug !== editingProduct.slug)) {
+        try {
+          const { data: existingProduct, error: slugError } = await supabase
+            .from('products')
+            .select('slug')
+            .eq('slug', baseSlug)
+            .single();
+            
+          if (!slugError && existingProduct && (!editingProduct || existingProduct.slug !== editingProduct.slug)) {
+            uniqueSlug = `${baseSlug}-${Date.now()}`;
+          }
+        } catch (error) {
+          // If error checking slug, use timestamp to ensure uniqueness
           uniqueSlug = `${baseSlug}-${Date.now()}`;
         }
       }
+
+      // Get primary image URL from productImages
+      const primaryImage = productImages.find(img => img.is_primary);
+      const primaryImageUrl = primaryImage?.image_url || '';
 
       const productData = {
         name: formData.name,
@@ -178,13 +180,18 @@ export default function ProductManagement() {
         sku: formData.sku || null,
         unit: formData.unit,
         tax_rate: formData.tax_rate,
-        image_url: formData.image_url || null,
+        image_url: primaryImageUrl, // Set primary image as main image_url
         category_id: formData.category_id || null,
         is_visible: formData.is_visible,
-        is_featured: formData.is_featured
+        is_featured: formData.is_featured,
+        coins_earned_per_purchase: formData.coins_earned_per_purchase || 0,
+        coins_required_to_buy: formData.coins_required_to_buy || 0,
+        is_coin_purchase_enabled: formData.is_coin_purchase_enabled
       };
 
       console.log('Saving product data:', productData);
+
+      let productId: string;
 
       if (editingProduct) {
         const { error } = await supabase
@@ -196,17 +203,83 @@ export default function ProductManagement() {
           console.error('Update error:', error);
           throw error;
         }
+        productId = editingProduct.id;
         toast.success('Product updated successfully');
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('products')
-          .insert([productData]);
+          .insert([productData])
+          .select('id')
+          .single();
 
         if (error) {
           console.error('Insert error:', error);
           throw error;
         }
+        productId = data.id;
         toast.success('Product created successfully');
+      }
+
+      // Save multiple images to database
+      if (productImages.length > 0) {
+        try {
+          await saveImages(productId, productImages);
+        } catch (imageError) {
+          console.error('Error saving images:', imageError);
+          toast.error('Product saved but some images failed to save');
+        }
+      }
+
+      // Create/Update loyalty settings if any loyalty values are provided
+      if (formData.coins_earned_per_purchase > 0 || formData.coins_required_to_buy > 0 || formData.is_coin_purchase_enabled) {
+        try {
+          const loyaltySettings = {
+            product_id: productId,
+            coins_earned_per_purchase: formData.coins_earned_per_purchase || 0,
+            coins_required_to_buy: formData.coins_required_to_buy || 0,
+            is_coin_purchase_enabled: formData.is_coin_purchase_enabled,
+            is_coin_earning_enabled: formData.coins_earned_per_purchase > 0,
+            updated_at: new Date().toISOString()
+          };
+
+          console.log('Creating loyalty settings:', loyaltySettings);
+
+          // Try to insert first, then update if conflict
+          const { error: insertError } = await (supabase as any)
+            .from('loyalty_product_settings')
+            .insert(loyaltySettings);
+
+          if (insertError) {
+            // If insert fails due to conflict, try update
+            if (insertError.code === '23505') {
+              const { error: updateError } = await (supabase as any)
+                .from('loyalty_product_settings')
+                .update({
+                  coins_earned_per_purchase: loyaltySettings.coins_earned_per_purchase,
+                  coins_required_to_buy: loyaltySettings.coins_required_to_buy,
+                  is_coin_purchase_enabled: loyaltySettings.is_coin_purchase_enabled,
+                  is_coin_earning_enabled: loyaltySettings.is_coin_earning_enabled,
+                  updated_at: loyaltySettings.updated_at
+                })
+                .eq('product_id', productId);
+
+              if (updateError) {
+                console.error('Loyalty settings update error:', updateError);
+                toast.error(`Product saved but loyalty settings failed: ${updateError.message}`);
+              } else {
+                console.log('Loyalty settings updated successfully');
+              }
+            } else {
+              console.error('Loyalty settings insert error:', insertError);
+              toast.error(`Product saved but loyalty settings failed: ${insertError.message}`);
+            }
+          } else {
+            console.log('Loyalty settings created successfully');
+          }
+        } catch (loyaltyError) {
+          console.error('Loyalty settings error:', loyaltyError);
+          toast.error('Product saved but loyalty settings failed to save');
+        }
       }
 
       setIsDialogOpen(false);
@@ -233,8 +306,58 @@ export default function ProductManagement() {
     }
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = async (product: Product) => {
     setEditingProduct(product);
+    
+    // Load existing images for this product
+    try {
+      const { data: existingImages, error } = await (supabase as any)
+        .from('product_images')
+        .select('*')
+        .eq('product_id', product.id)
+        .order('display_order', { ascending: true });
+
+      if (!error && existingImages) {
+        setProductImages(existingImages);
+      } else {
+        // If no images in product_images table, use the main image_url
+        if (product.image_url) {
+          setProductImages([{
+            image_url: product.image_url,
+            image_alt: product.name,
+            display_order: 0,
+            is_primary: true,
+            file_name: 'existing-image'
+          }]);
+        } else {
+          setProductImages([]);
+        }
+      }
+    } catch (error) {
+      console.log('Error loading product images:', error);
+      setProductImages([]);
+    }
+    
+    // Load loyalty settings from loyalty_product_settings table
+    let loyaltySettings = null;
+    try {
+      const { data, error } = await (supabase as any)
+        .from('loyalty_product_settings')
+        .select('*')
+        .eq('product_id', product.id)
+        .single();
+      
+      if (!error && data) {
+        loyaltySettings = data;
+        console.log('Loaded loyalty settings:', loyaltySettings);
+      } else if (error && error.code !== 'PGRST116') {
+        // PGRST116 is "not found" error, which is expected for products without loyalty settings
+        console.warn('Error loading loyalty settings:', error);
+      }
+    } catch (error) {
+      console.log('No loyalty settings found for product:', product.id);
+    }
+
     setFormData({
       name: product.name,
       description: product.description || '',
@@ -248,12 +371,14 @@ export default function ProductManagement() {
       sku: product.sku || '',
       unit: product.unit || 'pcs',
       tax_rate: product.tax_rate || 18,
-      image_url: product.image_url || '',
       category_id: product.category_id || '',
       is_visible: product.is_visible,
-      is_featured: product.is_featured
+      is_featured: product.is_featured,
+      // Use loyalty settings from loyalty_product_settings table if available, otherwise fallback to product table
+      coins_earned_per_purchase: loyaltySettings?.coins_earned_per_purchase || (product as any).coins_earned_per_purchase || 0,
+      coins_required_to_buy: loyaltySettings?.coins_required_to_buy || (product as any).coins_required_to_buy || 0,
+      is_coin_purchase_enabled: loyaltySettings?.is_coin_purchase_enabled || (product as any).is_coin_purchase_enabled || false
     });
-    setImageUrlValid(isValidImageUrl(product.image_url || ''));
     setIsDialogOpen(true);
   };
 
@@ -289,12 +414,14 @@ export default function ProductManagement() {
       sku: '',
       unit: 'pcs',
       tax_rate: 18,
-      image_url: '',
       category_id: '',
       is_visible: true,
-      is_featured: false
+      is_featured: false,
+      coins_earned_per_purchase: 0,
+      coins_required_to_buy: 0,
+      is_coin_purchase_enabled: false
     });
-    setImageUrlValid(true);
+    setProductImages([]);
   };
 
   const filteredProducts = useMemo(() => {
@@ -340,9 +467,8 @@ export default function ProductManagement() {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] dialog-content">
-            <div className="max-h-[80vh] overflow-y-auto p-1">
-            <DialogHeader>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0 pb-4 border-b">
               <DialogTitle>
                 {editingProduct ? 'Edit Product' : 'Add New Product'}
               </DialogTitle>
@@ -350,26 +476,28 @@ export default function ProductManagement() {
                 {editingProduct ? 'Update product information and settings.' : 'Create a new product with details, pricing, and inventory settings.'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Product Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
+            
+            <div className="flex-1 overflow-y-auto dialog-scroll-container px-1">
+              <form onSubmit={handleSubmit} className="product-form space-y-6 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Product Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="sku">SKU</Label>
+                    <Input
+                      id="sku"
+                      value={formData.sku}
+                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="sku">SKU</Label>
-                  <Input
-                    id="sku"
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  />
-                </div>
-              </div>
 
               <div>
                 <Label htmlFor="description">Description</Label>
@@ -497,88 +625,74 @@ export default function ProductManagement() {
               </div>
 
               <div>
-                <Label>Product Image</Label>
-                <div className="space-y-4">
-                  {/* File Upload Option */}
-                  <div>
-                    <Label className="text-sm text-gray-600">Upload Image File</Label>
-                    <ImageUpload
-                      onImageUploaded={(imageUrl) => setFormData({ ...formData, image_url: imageUrl })}
-                      currentImage={formData.image_url}
-                      folder="products"
-                      maxSize={5}
-                      allowedTypes={['image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
-                      showPreview={true}
-                    />
-                  </div>
-                  
-                  {/* Manual URL Input Option */}
-                  <div>
-                    <Label className="text-sm text-gray-600">Or Enter Image URL</Label>
-                    <div className="relative">
-                      <Input
-                        type="url"
-                        placeholder="https://example.com/image.jpg"
-                        value={formData.image_url}
-                        onChange={(e) => {
-                          const url = e.target.value;
-                          setFormData({ ...formData, image_url: url });
-                          setImageUrlValid(isValidImageUrl(url));
-                        }}
-                        className={!imageUrlValid && formData.image_url ? 'border-red-500' : ''}
-                      />
-                      {formData.image_url && (
-                        <div className="absolute right-2 top-2">
-                          {imageUrlValid ? (
-                            <div className="text-green-500 text-xs">✓ Valid</div>
-                          ) : (
-                            <div className="text-red-500 text-xs">✗ Invalid</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      You can either upload an image file above or enter a direct image URL here
-                    </p>
-                    {!imageUrlValid && formData.image_url && (
-                      <p className="text-xs text-red-500 mt-1">
-                        Please enter a valid image URL (jpg, png, gif, webp, svg)
-                      </p>
-                    )}
-                  </div>
-                  
-                  {/* Image Preview */}
-                  {formData.image_url && (
-                    <div>
-                      <Label className="text-sm text-gray-600">Current Image Preview</Label>
-                      <div className="mt-2 border rounded-lg p-2 bg-gray-50">
-                        <img
-                          src={formData.image_url}
-                          alt="Product preview"
-                          className="max-w-full h-32 object-cover rounded"
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            const errorDiv = target.nextElementSibling as HTMLElement;
-                            target.style.display = 'none';
-                            if (errorDiv) errorDiv.style.display = 'block';
-                          }}
-                        />
-                        <div className="text-red-500 text-sm hidden">
-                          Failed to load image. Please check the URL.
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="mt-2"
-                        onClick={() => setFormData({ ...formData, image_url: '' })}
-                      >
-                        Remove Image
-                      </Button>
-                    </div>
-                  )}
+                <Label>Product Images</Label>
+                <MultipleImageUpload
+                  productId={editingProduct?.id}
+                  images={productImages}
+                  onImagesChange={setProductImages}
+                  maxImages={10}
+                  folder="products"
+                  maxSize={5}
+                  allowedTypes={['image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
+                />
+              </div>
+
+              {/* Loyalty Coins Configuration */}
+              <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <Coins className="h-5 w-5 text-yellow-600" />
+                  <Label className="text-base font-semibold text-yellow-800">Loyalty Coins Settings</Label>
                 </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="coins_earned_per_purchase">Coins Earned per Purchase</Label>
+                    <Input
+                      id="coins_earned_per_purchase"
+                      type="number"
+                      min="0"
+                      value={formData.coins_earned_per_purchase}
+                      onChange={(e) => setFormData({ ...formData, coins_earned_per_purchase: Number(e.target.value) })}
+                      placeholder="e.g., 10"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Coins user will earn when purchasing this product
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="coins_required_to_buy">Coins Required to Buy</Label>
+                    <Input
+                      id="coins_required_to_buy"
+                      type="number"
+                      min="0"
+                      value={formData.coins_required_to_buy}
+                      onChange={(e) => setFormData({ ...formData, coins_required_to_buy: Number(e.target.value) })}
+                      placeholder="e.g., 100"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Coins needed to redeem this product for free
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="is_coin_purchase_enabled"
+                    checked={formData.is_coin_purchase_enabled}
+                    onChange={(e) => setFormData({ ...formData, is_coin_purchase_enabled: e.target.checked })}
+                  />
+                  <Label htmlFor="is_coin_purchase_enabled" className="text-sm">
+                    Enable Coin Redemption for this Product
+                  </Label>
+                </div>
+                
+                {formData.coins_required_to_buy > 0 && (
+                  <div className="text-xs text-yellow-700 bg-yellow-100 p-2 rounded">
+                    <strong>Preview:</strong> Users with {formData.coins_required_to_buy} coins can redeem this product for free 
+                    (≈ ₹{(formData.coins_required_to_buy * 0.1).toFixed(2)} value)
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center space-x-4">
@@ -601,16 +715,26 @@ export default function ProductManagement() {
                   <Label htmlFor="is_featured">Featured</Label>
                 </div>
               </div>
-
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Saving...' : editingProduct ? 'Update' : 'Create'}
-                </Button>
-              </div>
-            </form>
+              </form>
+            </div>
+            
+            {/* Fixed Footer with Action Buttons */}
+            <div className="flex-shrink-0 flex justify-end space-x-2 pt-4 border-t bg-white">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                disabled={loading}
+                onClick={() => {
+                  const form = document.querySelector('.product-form');
+                  if (form) {
+                    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                    form.dispatchEvent(submitEvent);
+                  }
+                }}
+              >
+                {loading ? 'Saving...' : editingProduct ? 'Update' : 'Create'}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

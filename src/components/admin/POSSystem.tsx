@@ -986,14 +986,16 @@ Thank you for choosing ElectroStore! 🙏
                   Add New Customer
                 </Button>
               </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
+              <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+                <DialogHeader className="flex-shrink-0 pb-4 border-b">
                   <DialogTitle>Add New Customer</DialogTitle>
                   <DialogDescription>
                     Create a new customer account for this transaction.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
+                
+                <div className="flex-1 overflow-y-auto dialog-scroll-container px-1">
+                  <div className="customer-form space-y-6 py-4">
                   <div>
                     <Label htmlFor="name">Name *</Label>
                     <Input
@@ -1034,9 +1036,10 @@ Thank you for choosing ElectroStore! 🙏
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={createCustomer} className="w-full">
-                    Create Customer
-                  </Button>
+                    <Button onClick={createCustomer} className="w-full">
+                      Create Customer
+                    </Button>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>

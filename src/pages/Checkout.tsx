@@ -15,12 +15,16 @@ import {
   Truck, 
   CheckCircle,
   Banknote,
-  Lock
+  Lock,
+  Coins,
+  Gift
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrders } from '@/contexts/OrderContext';
+import { useLoyaltyCoins } from '@/hooks/useLoyaltyCoins';
+import { CoinRedemptionModal } from '@/components/loyalty/CoinRedemptionModal';
 import { toast } from 'sonner';
 
 const Checkout = () => {
@@ -28,7 +32,17 @@ const Checkout = () => {
   const { user } = useAuth();
   const { items: cartItems, getTotalPrice } = useCart();
   const { createOrder } = useOrders();
+  const { 
+    wallet, 
+    calculateCoinsEarned, 
+    canRedeemCoins, 
+    redeemCoins,
+    isSystemEnabled 
+  } = useLoyaltyCoins();
   const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [useCoins, setUseCoins] = useState(false);
+  const [coinsToUse, setCoinsToUse] = useState(0);
+  const [showCoinModal, setShowCoinModal] = useState(false);
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
     phone: '',
@@ -65,7 +79,14 @@ const Checkout = () => {
 
   const subtotal = getTotalPrice();
   const shipping = 0; // Free shipping
-  const total = subtotal + shipping;
+  const coinsDiscount = useCoins ? Math.min(coinsToUse * 0.1, subtotal) : 0; // 1 coin = ₹0.10
+  const total = subtotal + shipping - coinsDiscount;
+  const coinsEarned = calculateCoinsEarned(total);
+
+  const handleCoinRedemption = (coins: number) => {
+    setCoinsToUse(coins);
+    setUseCoins(coins > 0);
+  };
 
   const handlePlaceOrder = async () => {
     if (!shippingInfo.name || !shippingInfo.phone || !shippingInfo.address) {
@@ -79,6 +100,26 @@ const Checkout = () => {
     }
 
     try {
+      // Handle coin redemption if selected
+      let finalTotal = total;
+      let coinsUsed = 0;
+      
+      if (useCoins && coinsToUse > 0) {
+        const redemptionSuccess = await redeemCoins(
+          coinsToUse, 
+          'temp-order-id', // Will be updated with actual order ID
+          `Coins redeemed for order - ${coinsToUse} coins used`
+        );
+        
+        if (!redemptionSuccess) {
+          toast.error('Failed to redeem coins. Please try again.');
+          return;
+        }
+        
+        coinsUsed = coinsToUse;
+        finalTotal = total;
+      }
+
       // Create order with cart items
       const orderItems = cartItems.map(item => ({
         product_id: item.id,
@@ -94,9 +135,12 @@ const Checkout = () => {
         shipping_address: shippingInfo.address,
         shipping_city: shippingInfo.city,
         shipping_zipcode: shippingInfo.zipCode,
-        total_amount: total,
+        total_amount: finalTotal,
         payment_method: paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment',
         notes: shippingInfo.notes,
+        coins_used: coinsUsed,
+        coins_discount_amount: coinsDiscount,
+        coins_earned: useCoins ? 0 : coinsEarned, // No coins earned if coins were used for discount
         items: orderItems
       });
 
@@ -283,6 +327,79 @@ const Checkout = () => {
                   <span className="text-muted-foreground">Shipping</span>
                   <span className="text-green-600 font-medium">Free</span>
                 </div>
+                
+                {/* Loyalty Coins Section */}
+                {isSystemEnabled && wallet && wallet.available_coins > 0 && (
+                  <>
+                    <Separator />
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Coins className="h-4 w-4 text-yellow-600" />
+                          <span className="font-medium">Loyalty Coins</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          Available: {wallet.available_coins} coins
+                        </span>
+                      </div>
+                      
+                      {!useCoins ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowCoinModal(true)}
+                          className="w-full text-yellow-600 border-yellow-200 hover:bg-yellow-50"
+                        >
+                          <Gift className="h-4 w-4 mr-2" />
+                          Use Coins for Discount
+                        </Button>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-green-600">Coins Applied:</span>
+                            <span className="font-medium">{coinsToUse} coins</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowCoinModal(true)}
+                              className="text-yellow-600 border-yellow-200 hover:bg-yellow-50"
+                            >
+                              Modify
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUseCoins(false);
+                                setCoinsToUse(0);
+                              }}
+                              className="text-red-600 hover:bg-red-50"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {!useCoins && coinsEarned > 0 && (
+                        <div className="flex items-center gap-2 text-sm text-green-600">
+                          <Gift className="h-4 w-4" />
+                          <span>You'll earn {coinsEarned} coins from this order!</span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+                
+                {coinsDiscount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Coins Discount</span>
+                    <span>-₹{coinsDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
@@ -316,6 +433,14 @@ const Checkout = () => {
             <CheckCircle className="h-5 w-5 mr-2" />
             Place Order - ₹{total.toFixed(2)}
           </Button>
+
+          {/* Coin Redemption Modal */}
+          <CoinRedemptionModal
+            isOpen={showCoinModal}
+            onClose={() => setShowCoinModal(false)}
+            orderTotal={subtotal}
+            onRedeem={handleCoinRedemption}
+          />
         </div>
       </div>
     </MainLayout>

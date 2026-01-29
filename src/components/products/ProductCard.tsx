@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom';
-import { MessageCircle, Tag, Heart, ShoppingCart } from 'lucide-react';
+import { MessageCircle, Tag, Heart, ShoppingCart, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Product } from '@/hooks/useProducts';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLoyaltyCoins } from '@/hooks/useLoyaltyCoins';
+import { DualCoinsDisplay } from '@/components/loyalty/DualCoinsDisplay';
+import { ProductImageGallery } from '@/components/ui/ProductImageGallery';
 import { toast } from 'sonner';
 
 interface ProductCardProps {
@@ -17,11 +21,14 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addItem: addToWishlist, isInWishlist } = useWishlist();
   const { addItem: addToCart } = useCart();
   const { user } = useAuth();
+  const { isSystemEnabled } = useLoyaltyCoins();
   
   const hasDiscount = product.offer_price && product.offer_price < product.price;
   const discountPercent = hasDiscount
     ? Math.round(((product.price - product.offer_price!) / product.price) * 100)
     : 0;
+  
+  const finalPrice = product.offer_price || product.price;
 
   const whatsappNumber = settings?.whatsapp_number?.replace(/\D/g, '') || '';
   const productUrl = `${window.location.origin}/products/${product.slug}`;
@@ -78,23 +85,20 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <div className="product-card group bg-white rounded-xl border border-gray-200 overflow-hidden">
-      {/* Image */}
+      {/* Image Gallery */}
       <Link to={`/products/${product.slug}`} className="block relative aspect-square overflow-hidden">
-        {product.image_url ? (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
-        ) : (
-          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-            <span className="text-gray-400 text-sm">No image</span>
-          </div>
-        )}
+        <ProductImageGallery
+          productId={product.id}
+          productName={product.name}
+          fallbackImage={product.image_url}
+          showThumbnails={false}
+          maxHeight="h-full"
+          className="w-full h-full"
+        />
         
         {/* Discount Badge */}
         {hasDiscount && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold">
+          <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold z-10">
             {discountPercent}% OFF
           </div>
         )}
@@ -105,7 +109,7 @@ export function ProductCard({ product }: ProductCardProps) {
             e.preventDefault();
             handleAddToWishlist();
           }}
-          className={`absolute top-2 right-2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-sm transition-colors ${
+          className={`absolute bottom-2 right-2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-sm transition-colors z-10 ${
             isWishlisted ? 'text-red-500' : 'text-gray-600 hover:text-red-500'
           }`}
         >
@@ -148,6 +152,15 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
           <span className="text-xs text-gray-500">(4.0)</span>
         </div>
+
+        {/* Loyalty Coins Info */}
+        <DualCoinsDisplay
+          productId={product.id}
+          productName={product.name}
+          productPrice={product.price}
+          offerPrice={product.offer_price}
+          mode="card"
+        />
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">

@@ -206,8 +206,8 @@ export default function CustomerManagement() {
               Add Customer
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0 pb-4 border-b">
               <DialogTitle>
                 {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
               </DialogTitle>
@@ -215,7 +215,9 @@ export default function CustomerManagement() {
                 {editingCustomer ? 'Update customer information and contact details.' : 'Create a new customer account with contact and billing information.'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            
+            <div className="flex-1 overflow-y-auto dialog-scroll-container px-1">
+              <form onSubmit={handleSubmit} className="customer-form space-y-6 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Customer Name *</Label>
@@ -347,15 +349,16 @@ export default function CustomerManagement() {
                 <Label htmlFor="is_active">Active</Label>
               </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Saving...' : editingCustomer ? 'Update' : 'Create'}
-                </Button>
-              </div>
-            </form>
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? 'Saving...' : editingCustomer ? 'Update' : 'Create'}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

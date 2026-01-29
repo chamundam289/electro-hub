@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { TableShimmer, StatsCardShimmer } from '@/components/ui/shimmer';
+import { DataPagination } from '@/components/ui/data-pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
 import { Warehouse, AlertTriangle, TrendingUp, TrendingDown, Plus, Minus, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -81,8 +83,7 @@ export default function InventoryManagement() {
           *,
           products(name, sku)
         `)
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setTransactions(data || []);
@@ -185,6 +186,30 @@ export default function InventoryManagement() {
   const lowStockCount = products.filter(p => p.stock_quantity <= (p.reorder_point || 10)).length;
   const outOfStockCount = products.filter(p => p.stock_quantity === 0).length;
   const totalValue = products.reduce((sum, p) => sum + (p.stock_quantity * (p.cost_price || p.price)), 0);
+
+  // Pagination for products
+  const productsPagination = usePagination({
+    totalItems: filteredProducts.length,
+    itemsPerPage: 10,
+  });
+
+  const paginatedProducts = useMemo(() => {
+    const startIndex = productsPagination.startIndex;
+    const endIndex = productsPagination.endIndex;
+    return filteredProducts.slice(startIndex, endIndex);
+  }, [filteredProducts, productsPagination.startIndex, productsPagination.endIndex]);
+
+  // Pagination for transactions
+  const transactionsPagination = usePagination({
+    totalItems: transactions.length,
+    itemsPerPage: 8,
+  });
+
+  const paginatedTransactions = useMemo(() => {
+    const startIndex = transactionsPagination.startIndex;
+    const endIndex = transactionsPagination.endIndex;
+    return transactions.slice(startIndex, endIndex);
+  }, [transactions, transactionsPagination.startIndex, transactionsPagination.endIndex]);
 
   if (loading) {
     return (
@@ -423,11 +448,16 @@ export default function InventoryManagement() {
         {/* Products Inventory */}
         <Card>
           <CardHeader>
-            <CardTitle>Product Inventory</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Product Inventory</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                ({filteredProducts.length} products)
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {filteredProducts.map((product) => {
+              {paginatedProducts.map((product) => {
                 const status = getStockStatus(product);
                 const StatusIcon = status.icon;
                 return (
@@ -463,18 +493,53 @@ export default function InventoryManagement() {
                   </div>
                 );
               })}
+              
+              {filteredProducts.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No products found matching your criteria.
+                </div>
+              )}
             </div>
+            
+            {/* Products Pagination */}
+            {filteredProducts.length > 0 && (
+              <div className="mt-6 border-t pt-4">
+                <DataPagination
+                  currentPage={productsPagination.currentPage}
+                  totalPages={productsPagination.totalPages}
+                  totalItems={filteredProducts.length}
+                  itemsPerPage={productsPagination.itemsPerPage}
+                  startIndex={productsPagination.startIndex}
+                  endIndex={productsPagination.endIndex}
+                  hasNextPage={productsPagination.hasNextPage}
+                  hasPreviousPage={productsPagination.hasPreviousPage}
+                  onPageChange={productsPagination.goToPage}
+                  onItemsPerPageChange={productsPagination.setItemsPerPage}
+                  onFirstPage={productsPagination.goToFirstPage}
+                  onLastPage={productsPagination.goToLastPage}
+                  onNextPage={productsPagination.goToNextPage}
+                  onPreviousPage={productsPagination.goToPreviousPage}
+                  getPageNumbers={productsPagination.getPageNumbers}
+                  itemsPerPageOptions={[5, 10, 20, 50]}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Recent Transactions */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Recent Transactions</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                ({transactions.length} transactions)
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {transactions.map((transaction) => (
+              {paginatedTransactions.map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between p-3 border rounded">
                   <div className="flex items-center gap-3">
                     {getTransactionIcon(transaction.transaction_type)}
@@ -500,7 +565,37 @@ export default function InventoryManagement() {
                   </div>
                 </div>
               ))}
+              
+              {transactions.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No transactions found.
+                </div>
+              )}
             </div>
+            
+            {/* Transactions Pagination */}
+            {transactions.length > 0 && (
+              <div className="mt-6 border-t pt-4">
+                <DataPagination
+                  currentPage={transactionsPagination.currentPage}
+                  totalPages={transactionsPagination.totalPages}
+                  totalItems={transactions.length}
+                  itemsPerPage={transactionsPagination.itemsPerPage}
+                  startIndex={transactionsPagination.startIndex}
+                  endIndex={transactionsPagination.endIndex}
+                  hasNextPage={transactionsPagination.hasNextPage}
+                  hasPreviousPage={transactionsPagination.hasPreviousPage}
+                  onPageChange={transactionsPagination.goToPage}
+                  onItemsPerPageChange={transactionsPagination.setItemsPerPage}
+                  onFirstPage={transactionsPagination.goToFirstPage}
+                  onLastPage={transactionsPagination.goToLastPage}
+                  onNextPage={transactionsPagination.goToNextPage}
+                  onPreviousPage={transactionsPagination.goToPreviousPage}
+                  getPageNumbers={transactionsPagination.getPageNumbers}
+                  itemsPerPageOptions={[5, 8, 15, 25]}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

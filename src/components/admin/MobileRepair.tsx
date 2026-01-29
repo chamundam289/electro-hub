@@ -895,70 +895,81 @@ Thank you for choosing ElectroStore! 🙏
             </div>
           ) : (
             <>
-              <div className="w-full">
-                <table className="w-full">
+              <div className="w-full overflow-x-auto">
+                <table className="w-full min-w-[1200px] table-fixed">
+                  <colgroup>
+                    <col className="w-[140px]" /> {/* Customer */}
+                    <col className="w-[120px]" /> {/* Device */}
+                    <col className="w-[200px]" /> {/* Issue */}
+                    <col className="w-[100px]" /> {/* Cost */}
+                    <col className="w-[100px]" /> {/* Payment */}
+                    <col className="w-[120px]" /> {/* Status */}
+                    <col className="w-[100px]" /> {/* Technician */}
+                    <col className="w-[120px]" /> {/* Date */}
+                    <col className="w-[140px]" /> {/* Actions */}
+                  </colgroup>
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Customer</th>
-                      <th className="text-left p-2">Device</th>
-                      <th className="text-left p-2">Issue</th>
-                      <th className="text-left p-2">Cost</th>
-                      <th className="text-left p-2">Payment</th>
-                      <th className="text-left p-2">Status</th>
-                      <th className="text-left p-2">Technician</th>
-                      <th className="text-left p-2">Date</th>
-                      <th className="text-left p-2">Actions</th>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left p-3 font-semibold">Customer</th>
+                      <th className="text-left p-3 font-semibold">Device</th>
+                      <th className="text-left p-3 font-semibold">Issue</th>
+                      <th className="text-left p-3 font-semibold">Cost</th>
+                      <th className="text-left p-3 font-semibold">Payment</th>
+                      <th className="text-left p-3 font-semibold">Status</th>
+                      <th className="text-left p-3 font-semibold">Technician</th>
+                      <th className="text-left p-3 font-semibold">Date</th>
+                      <th className="text-left p-3 font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedRepairs.map((repair) => (
                       <tr key={repair.id} className="border-b hover:bg-gray-50">
-                        <td className="p-2">
+                        <td className="p-3">
                           <div>
-                            <div className="font-medium">{repair.customer_name}</div>
-                            <div className="text-sm text-muted-foreground">{repair.customer_phone}</div>
+                            <div className="font-medium text-sm truncate">{repair.customer_name}</div>
+                            <div className="text-xs text-muted-foreground truncate">{repair.customer_phone}</div>
                           </div>
                         </td>
-                        <td className="p-2">
+                        <td className="p-3">
                           <div>
-                            <div className="font-medium">{repair.device_brand}</div>
-                            <div className="text-sm text-muted-foreground">{repair.device_model}</div>
+                            <div className="font-medium text-sm truncate">{repair.device_brand}</div>
+                            <div className="text-xs text-muted-foreground truncate">{repair.device_model}</div>
                           </div>
                         </td>
-                        <td className="p-2">
+                        <td className="p-3">
                           <div>
-                            <div className="font-medium text-sm">{repair.repair_type}</div>
-                            <div className="text-xs text-muted-foreground truncate max-w-32" title={repair.issue_description}>
+                            <div className="font-medium text-sm truncate mb-1">{repair.repair_type}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-2 leading-relaxed" title={repair.issue_description}>
                               {repair.issue_description}
                             </div>
                           </div>
                         </td>
-                        <td className="p-2">
+                        <td className="p-3">
                           <div>
-                            <div className="font-medium">₹{repair.estimated_cost}</div>
+                            <div className="font-medium text-sm">₹{repair.estimated_cost}</div>
                             {repair.advance_payment && repair.advance_payment > 0 && (
                               <div className="text-xs text-green-600">Advance: ₹{repair.advance_payment}</div>
                             )}
                           </div>
                         </td>
-                        <td className="p-2">
+                        <td className="p-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusBadgeVariant(repair.payment_status)}`}>
                             {repair.payment_status}
                           </span>
                         </td>
-                        <td className="p-2">
+                        <td className="p-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeVariant(repair.repair_status)}`}>
                             {REPAIR_STATUS_OPTIONS.find(s => s.value === repair.repair_status)?.label || repair.repair_status}
                           </span>
                         </td>
-                        <td className="p-2">
-                          <div className="text-sm">{repair.technician_name || 'Unassigned'}</div>
+                        <td className="p-3">
+                          <div className="text-sm truncate">{repair.technician_name || 'Unassigned'}</div>
                         </td>
-                        <td className="p-2">
+                        <td className="p-3">
                           <div className="text-sm">{new Date(repair.created_at).toLocaleDateString()}</div>
                           <div className="text-xs text-muted-foreground">{new Date(repair.created_at).toLocaleTimeString()}</div>
                         </td>
-                        <td className="p-2">
+                        <td className="p-3">
                           <div className="flex space-x-1">
                             <Button
                               size="sm"
@@ -1030,14 +1041,17 @@ Thank you for choosing ElectroStore! 🙏
       </Card>
       {/* Add Repair Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-3xl dialog-content">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0 pb-4 border-b">
             <DialogTitle>New Mobile Repair Service</DialogTitle>
             <DialogDescription>
               Register a new mobile device for repair service.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
+          
+          <div className="flex-1 overflow-y-auto dialog-scroll-container px-1">
+            <div className="repair-form space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="customerName">Customer Name *</Label>
               <Input
@@ -1159,16 +1173,17 @@ Thank you for choosing ElectroStore! 🙏
                 placeholder="Any additional notes or special instructions"
                 rows={2}
               />
+              </div>
+              
+              <div className="flex justify-end space-x-2 mt-6">
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddRepair} disabled={loading}>
+                  {loading ? 'Registering...' : 'Register Repair'}
+                </Button>
+              </div>
             </div>
-          </div>
-          
-          <div className="flex justify-end space-x-2 mt-6">
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddRepair} disabled={loading}>
-              {loading ? 'Registering...' : 'Register Repair'}
-            </Button>
           </div>
         </DialogContent>
       </Dialog>

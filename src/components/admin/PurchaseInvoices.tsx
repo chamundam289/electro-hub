@@ -395,13 +395,15 @@ export default function PurchaseInvoices() {
               Create Invoice
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-6xl dialog-content">
-            <DialogHeader>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0 pb-4 border-b">
               <DialogTitle>
                 {editingInvoice ? 'Edit Purchase Invoice' : 'Create Purchase Invoice'}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            
+            <div className="flex-1 overflow-y-auto dialog-scroll-container px-1">
+              <form onSubmit={handleSubmit} className="purchase-invoice-form space-y-6 py-4">
               {/* Invoice Header */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -599,15 +601,16 @@ export default function PurchaseInvoices() {
                 </div>
               )}
 
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Saving...' : editingInvoice ? 'Update' : 'Create'}
-                </Button>
-              </div>
-            </form>
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? 'Saving...' : editingInvoice ? 'Update' : 'Create'}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
