@@ -129,7 +129,6 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
     overflow-x: hidden; /* Prevent horizontal scroll */
-    overflow-y: hidden; /* Hide body scrollbar - only use main content scroll */
   }
 
   /* Admin layout specific styles */
@@ -149,10 +148,7 @@
     overflow-x: hidden;
   }
 
-  /* Hide any additional scrollbars */
-  html {
-    overflow: hidden;
-  }
+  /* Hide any additional scrollbars only within admin layout */
 
   /* Ensure only admin main content scrolls */
   .admin-layout * {

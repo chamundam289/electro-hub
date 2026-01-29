@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Zap, MessageCircle } from 'lucide-react';
+import { Menu, X, Zap, MessageCircle, User, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWebsiteSettings } from '@/hooks/useWebsiteSettings';
+import { useAuth } from '@/contexts/AuthContext';
+import UserProfile from '@/components/auth/UserProfile';
+import UserMenuMobile from '@/components/auth/UserMenuMobile';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -16,6 +19,7 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const { settings, getFloatingButtonLink } = useWebsiteSettings();
+  const { user, loading } = useAuth();
 
   const handleWhatsAppClick = () => {
     const link = getFloatingButtonLink();
@@ -67,7 +71,7 @@ export function Header() {
             ))}
           </nav>
 
-          {/* WhatsApp & Mobile Menu */}
+          {/* WhatsApp & User Auth & Mobile Menu */}
           <div className="flex items-center gap-3">
             {settings?.whatsapp_number && (
               <Button
@@ -80,6 +84,22 @@ export function Header() {
                 <span>WhatsApp</span>
               </Button>
             )}
+
+            {/* User Authentication */}
+            <div className="hidden md:flex items-center">
+              {loading ? (
+                <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+              ) : user ? (
+                <UserProfile />
+              ) : (
+                <Link to="/login">
+                  <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                    <LogIn className="h-4 w-4" />
+                    <span>Login</span>
+                  </Button>
+                </Link>
+              )}
+            </div>
             
             <Button
               variant="ghost"
@@ -110,6 +130,28 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
+              
+              {/* Mobile User Auth */}
+              <div className="px-4 py-2 border-t border-border mt-2 pt-4">
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                ) : user ? (
+                  <UserMenuMobile onClose={() => setIsMenuOpen(false)} />
+                ) : (
+                  <Link
+                    to="/login"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                  >
+                    <LogIn className="h-4 w-4" />
+                    <span>Login</span>
+                  </Link>
+                )}
+              </div>
+
               {settings?.whatsapp_number && (
                 <button
                   onClick={() => {

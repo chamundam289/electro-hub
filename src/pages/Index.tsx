@@ -4,16 +4,39 @@ import { CategoriesSection } from '@/components/home/CategoriesSection';
 import { FeaturedProducts } from '@/components/home/FeaturedProducts';
 import { DealsSection } from '@/components/home/DealsSection';
 import { WhyChooseUs } from '@/components/home/WhyChooseUs';
+import OAuthRedirectHandler from '@/components/auth/OAuthRedirectHandler';
+import SimpleRedirectFix from '@/components/auth/SimpleRedirectFix';
+import WelcomeDialog from '@/components/auth/WelcomeDialog';
+// import CompactWelcomeDialog from '@/components/auth/CompactWelcomeDialog';
+import { useWelcomeDialog } from '@/hooks/useWelcomeDialog';
 
 const Index = () => {
+  const { showWelcome, hideWelcome } = useWelcomeDialog();
+
   return (
-    <MainLayout>
-      <HeroSection />
-      <CategoriesSection />
-      <FeaturedProducts />
-      <DealsSection />
-      <WhyChooseUs />
-    </MainLayout>
+    <>
+      <SimpleRedirectFix />
+      <OAuthRedirectHandler />
+      
+      {/* Welcome Dialog - Choose one */}
+      <WelcomeDialog 
+        open={showWelcome} 
+        onClose={hideWelcome}
+      />
+      {/* Alternative: Compact Version */}
+      {/* <CompactWelcomeDialog 
+        open={showWelcome} 
+        onClose={hideWelcome}
+      /> */}
+      
+      <MainLayout>
+        <HeroSection />
+        <CategoriesSection />
+        <FeaturedProducts />
+        <DealsSection />
+        <WhyChooseUs />
+      </MainLayout>
+    </>
   );
 };
 
