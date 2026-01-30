@@ -14,7 +14,7 @@ import { usePagination } from '@/hooks/usePagination';
 import { useProductImages } from '@/hooks/useProductImages';
 import { useProductAffiliate } from '@/hooks/useProductAffiliate';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Edit, Trash2, Star, Package, Coins, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, Package, Coins, Users, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProductImage {
@@ -86,6 +86,11 @@ export default function ProductManagement() {
     coins_earned_per_purchase: 0,
     coins_required_to_buy: 0,
     is_coin_purchase_enabled: false,
+    // Coupon settings
+    is_coupon_eligible: true,
+    max_coupon_discount: 0,
+    coupon_categories: '',
+    allow_coupon_stacking: true,
     // Affiliate settings
     is_affiliate_enabled: false,
     affiliate_commission_type: 'percentage' as 'fixed' | 'percentage',
@@ -334,6 +339,44 @@ export default function ProductManagement() {
         toast.error('Product saved but affiliate settings failed to save');
       }
 
+      // Create/Update coupon settings
+      try {
+        const couponSettings = {
+          product_id: productId,
+          is_coupon_eligible: formData.is_coupon_eligible,
+          max_coupon_discount: formData.max_coupon_discount || 0,
+          coupon_categories: formData.coupon_categories || '',
+          allow_coupon_stacking: formData.allow_coupon_stacking,
+          updated_at: new Date().toISOString()
+        };
+
+        console.log('Creating coupon settings:', couponSettings);
+
+        // Use upsert to handle both insert and update
+        const { error: couponError } = await (supabase as any)
+          .from('product_coupon_settings')
+          .upsert(couponSettings, { 
+            onConflict: 'product_id',
+            ignoreDuplicates: false 
+          });
+
+        if (couponError) {
+          console.error('Coupon settings upsert error:', couponError);
+          // Don't show error to user if table doesn't exist yet
+          if (!couponError.message?.includes('relation') && !couponError.message?.includes('table')) {
+            toast.error(`Product saved but coupon settings failed: ${couponError.message}`);
+          } else {
+            console.log('Coupon settings table not created yet - skipping coupon settings save');
+          }
+        } else {
+          console.log('Coupon settings saved successfully');
+        }
+      } catch (couponError) {
+        console.error('Coupon settings error:', couponError);
+        // Don't show error to user if table doesn't exist yet
+        console.log('Coupon settings table may not exist yet - skipping coupon settings save');
+      }
+
       setIsDialogOpen(false);
       setEditingProduct(null);
       resetForm();
@@ -430,6 +473,27 @@ export default function ProductManagement() {
       console.log('No affiliate settings found for product:', product.id);
     }
 
+    // Load coupon settings from product_coupon_settings table
+    let couponSettings = null;
+    try {
+      const { data, error } = await (supabase as any)
+        .from('product_coupon_settings')
+        .select('*')
+        .eq('product_id', product.id)
+        .single();
+      
+      if (!error && data) {
+        couponSettings = data;
+        console.log('Loaded coupon settings:', couponSettings);
+      } else if (error && error.code !== 'PGRST116') {
+        // PGRST116 is "not found" error, which is expected for products without coupon settings
+        // Other errors might indicate table doesn't exist yet
+        console.warn('Error loading coupon settings (table may not exist yet):', error);
+      }
+    } catch (error) {
+      console.log('No coupon settings found for product (table may not exist yet):', product.id);
+    }
+
     setFormData({
       name: product.name,
       description: product.description || '',
@@ -450,6 +514,11 @@ export default function ProductManagement() {
       coins_earned_per_purchase: loyaltySettings?.coins_earned_per_purchase || (product as any).coins_earned_per_purchase || 0,
       coins_required_to_buy: loyaltySettings?.coins_required_to_buy || (product as any).coins_required_to_buy || 0,
       is_coin_purchase_enabled: loyaltySettings?.is_coin_purchase_enabled || (product as any).is_coin_purchase_enabled || false,
+      // Coupon settings
+      is_coupon_eligible: couponSettings?.is_coupon_eligible ?? true,
+      max_coupon_discount: couponSettings?.max_coupon_discount || 0,
+      coupon_categories: couponSettings?.coupon_categories || '',
+      allow_coupon_stacking: couponSettings?.allow_coupon_stacking ?? true,
       // Affiliate settings
       is_affiliate_enabled: affiliateSettings?.is_affiliate_enabled || false,
       affiliate_commission_type: affiliateSettings?.commission_type || 'percentage',
@@ -496,6 +565,11 @@ export default function ProductManagement() {
       coins_earned_per_purchase: 0,
       coins_required_to_buy: 0,
       is_coin_purchase_enabled: false,
+      // Coupon settings
+      is_coupon_eligible: true,
+      max_coupon_discount: 0,
+      coupon_categories: '',
+      allow_coupon_stacking: true,
       // Affiliate settings
       is_affiliate_enabled: false,
       affiliate_commission_type: 'percentage' as 'fixed' | 'percentage',
@@ -715,6 +789,79 @@ export default function ProductManagement() {
                   maxSize={5}
                   allowedTypes={['image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
                 />
+              </div>
+
+              {/* Coupon Eligibility Settings */}
+              <div className="space-y-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <Gift className="h-5 w-5 text-orange-600" />
+                  <Label className="text-base font-semibold text-orange-800">Coupon Eligibility Settings</Label>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="is_coupon_eligible"
+                      checked={formData.is_coupon_eligible}
+                      onChange={(e) => setFormData({ ...formData, is_coupon_eligible: e.target.checked })}
+                    />
+                    <Label htmlFor="is_coupon_eligible" className="text-sm">
+                      Allow coupons to be applied on this product
+                    </Label>
+                  </div>
+
+                  {formData.is_coupon_eligible && (
+                    <div className="space-y-3 pl-6 border-l-2 border-orange-200">
+                      <div>
+                        <Label htmlFor="max_coupon_discount">Maximum Coupon Discount (%)</Label>
+                        <Input
+                          id="max_coupon_discount"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={formData.max_coupon_discount}
+                          onChange={(e) => setFormData({ ...formData, max_coupon_discount: Number(e.target.value) })}
+                          placeholder="e.g., 50"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Maximum discount percentage allowed for this product (leave empty for no limit)
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="coupon_categories">Coupon Categories</Label>
+                        <Input
+                          id="coupon_categories"
+                          value={formData.coupon_categories}
+                          onChange={(e) => setFormData({ ...formData, coupon_categories: e.target.value })}
+                          placeholder="e.g., electronics, gadgets, premium"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Comma-separated categories for targeted coupon campaigns
+                        </p>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="allow_coupon_stacking"
+                          checked={formData.allow_coupon_stacking}
+                          onChange={(e) => setFormData({ ...formData, allow_coupon_stacking: e.target.checked })}
+                        />
+                        <Label htmlFor="allow_coupon_stacking" className="text-sm">
+                          Allow coupon stacking with loyalty coins
+                        </Label>
+                      </div>
+
+                      <div className="text-xs text-orange-700 bg-orange-100 p-2 rounded">
+                        <strong>Note:</strong> These settings control how coupons can be applied to this product. 
+                        Specific coupon rules may override these settings.
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Loyalty Coins Configuration */}

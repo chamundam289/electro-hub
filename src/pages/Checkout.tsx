@@ -26,6 +26,8 @@ import { useOrders } from '@/contexts/OrderContext';
 import { useLoyaltyCoins } from '@/hooks/useLoyaltyCoins';
 import { useAffiliate } from '@/hooks/useAffiliate';
 import { CoinRedemptionModal } from '@/components/loyalty/CoinRedemptionModal';
+import CouponApplication from '@/components/checkout/CouponApplication';
+import { useCoupons, AppliedCoupon } from '@/hooks/useCoupons';
 import { toast } from 'sonner';
 
 const Checkout = () => {
@@ -41,10 +43,12 @@ const Checkout = () => {
     redeemCoins,
     isSystemEnabled 
   } = useLoyaltyCoins();
+  const { applyCouponToOrder } = useCoupons();
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [useCoins, setUseCoins] = useState(false);
   const [coinsToUse, setCoinsToUse] = useState(0);
   const [showCoinModal, setShowCoinModal] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [shippingInfo, setShippingInfo] = useState({
     name: '',
     phone: '',
@@ -82,8 +86,9 @@ const Checkout = () => {
   const subtotal = getTotalPrice();
   const shipping = 0; // Free shipping
   const coinsDiscount = useCoins ? Math.min(coinsToUse * 0.1, subtotal) : 0; // 1 coin = ₹0.10
-  const total = subtotal + shipping - coinsDiscount;
-  const coinsEarned = calculateCoinsEarned(total);
+  const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+  const total = subtotal + shipping - coinsDiscount - couponDiscount;
+  const coinsEarned = calculateCoinsEarned(total) + (appliedCoupon?.bonusCoins || 0);
 
   const handleCoinRedemption = (coins: number) => {
     setCoinsToUse(coins);
@@ -143,8 +148,22 @@ const Checkout = () => {
         coins_used: coinsUsed,
         coins_discount_amount: coinsDiscount,
         coins_earned: useCoins ? 0 : coinsEarned, // No coins earned if coins were used for discount
+        coupon_id: appliedCoupon?.id || null,
+        coupon_code: appliedCoupon?.code || null,
+        coupon_discount_amount: couponDiscount,
+        coupon_bonus_coins: appliedCoupon?.bonusCoins || 0,
         items: orderItems
       });
+
+      // Apply coupon to order if one is selected
+      if (appliedCoupon) {
+        try {
+          await applyCouponToOrder(appliedCoupon.code, newOrder.id, subtotal);
+        } catch (couponError) {
+          console.error('Error applying coupon to order:', couponError);
+          // Don't fail the order if coupon application fails
+        }
+      }
 
       // Process affiliate order if applicable
       try {
@@ -306,6 +325,14 @@ const Checkout = () => {
             </CardContent>
           </Card>
 
+          {/* Coupon Application */}
+          <CouponApplication
+            orderTotal={subtotal}
+            cartItems={cartItems}
+            onCouponApplied={setAppliedCoupon}
+            appliedCoupon={appliedCoupon}
+          />
+
           {/* Order Summary */}
           <Card>
             <CardHeader>
@@ -407,6 +434,13 @@ const Checkout = () => {
                   <div className="flex justify-between text-green-600">
                     <span>Coins Discount</span>
                     <span>-₹{coinsDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-orange-600">
+                    <span>Coupon Discount ({appliedCoupon?.code})</span>
+                    <span>-₹{couponDiscount.toFixed(2)}</span>
                   </div>
                 )}
                 

@@ -28,13 +28,15 @@ import {
   CreditCard,
   HelpCircle,
   Shield,
-  Coins
+  Coins,
+  Gift
 } from 'lucide-react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { LoyaltyCoinsWallet } from '@/components/loyalty/LoyaltyCoinsWallet';
+import UserCoupons from '@/components/user/UserCoupons';
 import { toast } from 'sonner';
 
 const Profile = () => {
@@ -223,6 +225,15 @@ const Profile = () => {
                   Loyalty Coins
                 </Button>
                 <Button
+                  variant={activeTab === 'coupons' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleTabChange('coupons')}
+                  className="flex items-center gap-2"
+                >
+                  <Gift className="h-4 w-4" />
+                  My Coupons
+                </Button>
+                <Button
                   variant={activeTab === 'orders' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => handleTabChange('orders')}
@@ -378,6 +389,11 @@ const Profile = () => {
           {/* Loyalty Coins Tab */}
           {activeTab === 'loyalty' && (
             <LoyaltyCoinsWallet />
+          )}
+
+          {/* Coupons Tab */}
+          {activeTab === 'coupons' && (
+            <UserCoupons />
           )}
 
           {/* Orders Tab */}

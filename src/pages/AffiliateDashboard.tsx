@@ -15,6 +15,7 @@ import { usePagination } from '@/hooks/usePagination';
 import { useAffiliate } from '@/hooks/useAffiliate';
 import { useProductAffiliate } from '@/hooks/useProductAffiliate';
 import ClickAnalytics from '@/components/analytics/ClickAnalytics';
+import AffiliateCoupons from '@/components/affiliate/AffiliateCoupons';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -52,7 +53,8 @@ import {
   ChevronDown,
   Link2,
   FileText,
-  Zap
+  Zap,
+  Gift
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -713,8 +715,9 @@ export default function AffiliateDashboard() {
 
         {/* Main Content */}
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="coupons">Coupons</TabsTrigger>
             <TabsTrigger value="clicks">Clicks</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="commissions">Commissions</TabsTrigger>
@@ -1006,6 +1009,11 @@ export default function AffiliateDashboard() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Coupons Tab */}
+          <TabsContent value="coupons">
+            <AffiliateCoupons />
           </TabsContent>
 
           {/* Clicks Tab */}
