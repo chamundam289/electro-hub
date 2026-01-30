@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -43,6 +43,7 @@ export interface LoyaltySystemSettings {
   festive_multiplier: number;
   festive_start_date?: string;
   festive_end_date?: string;
+  is_festive_active?: boolean;
 }
 
 export interface ProductLoyaltySettings {
@@ -60,42 +61,119 @@ export const useLoyaltyCoins = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  
+  // Refs to prevent multiple simultaneous calls
+  const fetchingWallet = useRef(false);
+  const fetchingSettings = useRef(false);
+  const initializingWallet = useRef(false);
 
-  // Fetch user's loyalty wallet
-  const fetchWallet = async () => {
-    if (!user) {
-      setWallet(null);
-      return;
-    }
+  // Fetch system settings with caching and error handling
+  const fetchSystemSettings = useCallback(async () => {
+    if (fetchingSettings.current) return;
+    fetchingSettings.current = true;
 
     try {
+      console.log('🔍 useLoyaltyCoins: Fetching system settings...');
+      
+      // Use the reliable view that ALWAYS returns settings
       const { data, error } = await loyaltySupabase
-        .from('loyalty_coins_wallet')
+        .from('loyalty_system_config')
         .select('*')
-        .eq('user_id', user.id)
+        .limit(1)
         .single();
 
       if (error) {
-        // Handle table not found or permission errors gracefully
-        if (error.code === 'PGRST116' || error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('permission')) {
-          console.warn('Loyalty tables not yet created or accessible:', error.message);
-          setWallet(null);
-          return;
-        }
-        console.error('Error fetching wallet:', error);
-        setError('Failed to fetch coin wallet');
+        console.warn('⚠️ useLoyaltyCoins: Using fallback settings due to:', error.message);
+        // Use consistent fallback settings that match the database
+        const fallbackSettings: LoyaltySystemSettings = {
+          id: 'eef33271-caed-4eb2-a7ea-aa4d5e288a0f',
+          is_system_enabled: true,
+          global_coins_multiplier: 1.00,
+          default_coins_per_rupee: 0.10,
+          min_coins_to_redeem: 10,
+          festive_multiplier: 1.00,
+          is_festive_active: false
+        };
+        setSystemSettings(fallbackSettings);
         return;
       }
 
-      setWallet(data as LoyaltyWallet || null);
+      const settings = data as LoyaltySystemSettings;
+      console.log('✅ useLoyaltyCoins: System settings loaded successfully');
+      setSystemSettings(settings);
     } catch (err) {
-      console.error('Error in fetchWallet:', err);
-      setError('Failed to fetch coin wallet');
+      console.error('❌ useLoyaltyCoins: Error fetching system settings:', err);
+      // Use consistent fallback settings
+      setSystemSettings({
+        id: 'eef33271-caed-4eb2-a7ea-aa4d5e288a0f',
+        is_system_enabled: true,
+        global_coins_multiplier: 1.00,
+        default_coins_per_rupee: 0.10,
+        min_coins_to_redeem: 10,
+        festive_multiplier: 1.00,
+        is_festive_active: false
+      });
+    } finally {
+      fetchingSettings.current = false;
     }
-  };
+  }, []);
+
+  // Fetch user's loyalty wallet with safe creation
+  const fetchWallet = useCallback(async () => {
+    if (!user || fetchingWallet.current) return;
+    fetchingWallet.current = true;
+
+    try {
+      console.log('🔍 useLoyaltyCoins: Fetching wallet for user:', user.id);
+      
+      // Use the safe function to get or create wallet
+      const { data, error } = await loyaltySupabase
+        .rpc('get_user_wallet_safe', { input_user_id: user.id });
+
+      if (error) {
+        console.warn('⚠️ useLoyaltyCoins: Wallet function not available:', error.message);
+        // Fallback to direct table query
+        const { data: walletData, error: walletError } = await loyaltySupabase
+          .from('loyalty_coins_wallet')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (walletError && walletError.code !== 'PGRST116') {
+          console.error('❌ useLoyaltyCoins: Error fetching wallet:', walletError);
+          return;
+        }
+
+        setWallet(walletData as LoyaltyWallet || null);
+        return;
+      }
+
+      // Handle the renamed columns from the fixed function
+      const walletData = Array.isArray(data) ? data[0] : data;
+      if (walletData) {
+        const normalizedWallet: LoyaltyWallet = {
+          id: walletData.wallet_id,
+          user_id: walletData.wallet_user_id,
+          total_coins_earned: walletData.total_coins_earned,
+          total_coins_used: walletData.total_coins_used,
+          available_coins: walletData.available_coins,
+          last_updated: walletData.last_updated,
+          created_at: walletData.created_at
+        };
+        console.log('✅ useLoyaltyCoins: Wallet loaded successfully');
+        setWallet(normalizedWallet);
+      } else {
+        setWallet(null);
+      }
+    } catch (err) {
+      console.error('❌ useLoyaltyCoins: Error in fetchWallet:', err);
+    } finally {
+      fetchingWallet.current = false;
+    }
+  }, [user]);
 
   // Fetch user's loyalty transactions
-  const fetchTransactions = async (limit = 50) => {
+  const fetchTransactions = useCallback(async (limit = 50) => {
     if (!user) {
       setTransactions([]);
       return;
@@ -110,112 +188,91 @@ export const useLoyaltyCoins = () => {
         .limit(limit);
 
       if (error) {
-        // Handle table not found or permission errors gracefully
-        if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('permission')) {
-          console.warn('Loyalty tables not yet created or accessible:', error.message);
+        if (error.code === '42P01' || error.message?.includes('relation')) {
+          console.warn('⚠️ useLoyaltyCoins: Transactions table not available');
           setTransactions([]);
           return;
         }
-        console.error('Error fetching transactions:', error);
-        setError('Failed to fetch transaction history');
+        console.error('❌ useLoyaltyCoins: Error fetching transactions:', error);
         return;
       }
 
       setTransactions((data as LoyaltyTransaction[]) || []);
     } catch (err) {
-      console.error('Error in fetchTransactions:', err);
-      setError('Failed to fetch transaction history');
+      console.error('❌ useLoyaltyCoins: Error in fetchTransactions:', err);
     }
-  };
+  }, [user]);
 
-  // Fetch system settings
-  const fetchSystemSettings = async () => {
-    console.log('🔍 useLoyaltyCoins: Fetching system settings...');
-    
+  // Get product loyalty settings with auto-creation
+  const getProductLoyaltySettings = useCallback(async (productId: string): Promise<ProductLoyaltySettings | null> => {
     try {
-      const { data, error } = await loyaltySupabase
-        .from('loyalty_system_settings')
-        .select('*')
-        .limit(1)
-        .single();
+      console.log('🔍 useLoyaltyCoins: Getting settings for product:', productId);
+      
+      // Use the safe function that auto-creates settings
+      const { data: safeData, error: safeError } = await loyaltySupabase
+        .rpc('get_or_create_loyalty_settings', { input_product_id: productId });
 
-      console.log('📡 useLoyaltyCoins: System settings response:', { data, error });
-
-      if (error) {
-        // Handle table not found or permission errors gracefully
-        if (error.code === 'PGRST116' || error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('permission')) {
-          console.warn('⚠️ useLoyaltyCoins: Loyalty system settings not yet created or accessible:', error.message);
-          // Set default settings when table doesn't exist
-          const defaultSettings = {
-            id: 'default',
-            is_system_enabled: false, // Disable system when tables don't exist
-            global_coins_multiplier: 1.00,
-            default_coins_per_rupee: 0.10,
-            min_coins_to_redeem: 10,
-            festive_multiplier: 1.00
-          } as LoyaltySystemSettings;
-          console.log('🔧 useLoyaltyCoins: Using default settings:', defaultSettings);
-          setSystemSettings(defaultSettings);
-          return;
-        }
-        console.error('❌ useLoyaltyCoins: Error fetching system settings:', error);
-        return;
+      if (!safeError && safeData && safeData.length > 0) {
+        // Handle the renamed columns from the fixed function
+        const rawSettings = safeData[0];
+        const settings: ProductLoyaltySettings = {
+          product_id: rawSettings.settings_product_id,
+          coins_earned_per_purchase: rawSettings.coins_earned_per_purchase,
+          coins_required_to_buy: rawSettings.coins_required_to_buy,
+          is_coin_purchase_enabled: rawSettings.is_coin_purchase_enabled,
+          is_coin_earning_enabled: rawSettings.is_coin_earning_enabled
+        };
+        
+        console.log('✅ useLoyaltyCoins: Got settings from safe function:', {
+          productId,
+          coinsEarned: settings.coins_earned_per_purchase,
+          coinsRequired: settings.coins_required_to_buy,
+          canPurchase: settings.is_coin_purchase_enabled
+        });
+        return settings;
       }
 
-      const settings = data as LoyaltySystemSettings;
-      console.log('✅ useLoyaltyCoins: System settings loaded:', {
-        enabled: settings?.is_system_enabled,
-        coins_per_rupee: settings?.default_coins_per_rupee
-      });
-      setSystemSettings(settings || null);
-    } catch (err) {
-      console.error('❌ useLoyaltyCoins: Error in fetchSystemSettings:', err);
-    }
-  };
-
-  // Get product loyalty settings
-  const getProductLoyaltySettings = async (productId: string): Promise<ProductLoyaltySettings | null> => {
-    console.log('🔍 useLoyaltyCoins: Getting settings for product:', productId);
-    
-    try {
+      // Fallback to direct table query
+      console.log('🔄 useLoyaltyCoins: Fallback to direct query...');
       const { data, error } = await loyaltySupabase
         .from('loyalty_product_settings')
         .select('*')
         .eq('product_id', productId)
         .single();
 
-      console.log('📡 useLoyaltyCoins: Database response:', { data, error });
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('❌ useLoyaltyCoins: Error fetching product loyalty settings:', error);
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('⚠️ useLoyaltyCoins: No settings found, returning null');
+          return null;
+        }
+        console.error('❌ useLoyaltyCoins: Error fetching product settings:', error);
         return null;
       }
 
-      const result = (data as ProductLoyaltySettings) || null;
-      console.log('✅ useLoyaltyCoins: Returning settings:', result);
-      return result;
+      const settings = data as ProductLoyaltySettings;
+      console.log('✅ useLoyaltyCoins: Got settings from direct query:', {
+        productId,
+        coinsEarned: settings.coins_earned_per_purchase,
+        coinsRequired: settings.coins_required_to_buy,
+        canPurchase: settings.is_coin_purchase_enabled
+      });
+      return settings;
     } catch (err) {
       console.error('❌ useLoyaltyCoins: Error in getProductLoyaltySettings:', err);
       return null;
     }
-  };
+  }, []);
 
   // Calculate coins that would be earned for a purchase amount
-  const calculateCoinsEarned = (amount: number): number => {
+  const calculateCoinsEarned = useCallback((amount: number): number => {
     if (!systemSettings || !systemSettings.is_system_enabled) return 0;
 
     let coins = Math.floor(amount * systemSettings.default_coins_per_rupee);
     coins = Math.floor(coins * systemSettings.global_coins_multiplier);
 
     // Apply festive multiplier if active
-    if (systemSettings.festive_start_date && systemSettings.festive_end_date) {
-      const now = new Date();
-      const festiveStart = new Date(systemSettings.festive_start_date);
-      const festiveEnd = new Date(systemSettings.festive_end_date);
-      
-      if (now >= festiveStart && now <= festiveEnd) {
-        coins = Math.floor(coins * systemSettings.festive_multiplier);
-      }
+    if (systemSettings.is_festive_active) {
+      coins = Math.floor(coins * systemSettings.festive_multiplier);
     }
 
     // Apply max coins per order limit
@@ -224,18 +281,18 @@ export const useLoyaltyCoins = () => {
     }
 
     return coins;
-  };
+  }, [systemSettings]);
 
   // Check if user can redeem coins for a product
-  const canRedeemCoins = (coinsRequired: number): boolean => {
+  const canRedeemCoins = useCallback((coinsRequired: number): boolean => {
     if (!wallet || !systemSettings) return false;
     if (!systemSettings.is_system_enabled) return false;
     if (coinsRequired < systemSettings.min_coins_to_redeem) return false;
     return wallet.available_coins >= coinsRequired;
-  };
+  }, [wallet, systemSettings]);
 
   // Redeem coins for a purchase (to be called during checkout)
-  const redeemCoins = async (coinsToRedeem: number, orderId: string, description: string): Promise<boolean> => {
+  const redeemCoins = useCallback(async (coinsToRedeem: number, orderId: string, description: string): Promise<boolean> => {
     if (!user || !wallet) {
       toast.error('User not authenticated');
       return false;
@@ -261,23 +318,21 @@ export const useLoyaltyCoins = () => {
         });
 
       if (transactionError) {
-        console.error('Error creating redemption transaction:', transactionError);
+        console.error('❌ Error creating redemption transaction:', transactionError);
         toast.error('Failed to redeem coins');
         return false;
       }
 
-      // Update wallet
+      // Use safe wallet update function
       const { error: walletError } = await loyaltySupabase
-        .from('loyalty_coins_wallet')
-        .update({
-          total_coins_used: wallet.total_coins_used + coinsToRedeem,
-          available_coins: wallet.available_coins - coinsToRedeem,
-          last_updated: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
+        .rpc('update_user_coin_wallet_safe', {
+          p_user_id: user.id,
+          p_coins_change: coinsToRedeem,
+          p_transaction_type: 'redeemed'
+        });
 
       if (walletError) {
-        console.error('Error updating wallet:', walletError);
+        console.error('❌ Error updating wallet:', walletError);
         toast.error('Failed to update coin balance');
         return false;
       }
@@ -289,46 +344,40 @@ export const useLoyaltyCoins = () => {
       toast.success(`Successfully redeemed ${coinsToRedeem} coins!`);
       return true;
     } catch (err) {
-      console.error('Error in redeemCoins:', err);
+      console.error('❌ Error in redeemCoins:', err);
       toast.error('Failed to redeem coins');
       return false;
     }
-  };
+  }, [user, wallet, canRedeemCoins, fetchWallet, fetchTransactions]);
 
-  // Initialize wallet if it doesn't exist
-  const initializeWallet = async () => {
-    if (!user || wallet) return;
+  // Initialize wallet if it doesn't exist (with conflict prevention)
+  const initializeWallet = useCallback(async () => {
+    if (!user || wallet || initializingWallet.current) return;
+    initializingWallet.current = true;
 
     try {
+      console.log('🔧 useLoyaltyCoins: Initializing wallet for user:', user.id);
+      
+      // Use safe initialization function
       const { error } = await loyaltySupabase
-        .from('loyalty_coins_wallet')
-        .insert({
-          user_id: user.id,
-          total_coins_earned: 0,
-          total_coins_used: 0,
-          available_coins: 0
-        });
+        .rpc('initialize_user_wallet', { p_user_id: user.id });
 
       if (error) {
-        // Handle table not found or permission errors gracefully
-        if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('permission')) {
-          console.warn('Loyalty tables not yet created or accessible, skipping wallet initialization');
-          return;
-        }
-        if (error.code !== '23505') { // 23505 = unique violation (already exists)
-          console.error('Error initializing wallet:', error);
-          return;
-        }
+        console.warn('⚠️ useLoyaltyCoins: Wallet initialization failed:', error.message);
+        return;
       }
 
+      console.log('✅ useLoyaltyCoins: Wallet initialized successfully');
       await fetchWallet();
     } catch (err) {
-      console.error('Error in initializeWallet:', err);
+      console.error('❌ useLoyaltyCoins: Error in initializeWallet:', err);
+    } finally {
+      initializingWallet.current = false;
     }
-  };
+  }, [user, wallet, fetchWallet]);
 
-  // Load all data with better error handling
-  const loadData = async () => {
+  // Load all data with proper sequencing
+  const loadData = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
@@ -338,65 +387,40 @@ export const useLoyaltyCoins = () => {
     setError(null);
 
     try {
-      // Try to fetch system settings first to check if tables exist
-      const { data: settingsData, error: settingsError } = await loyaltySupabase
-        .from('loyalty_system_settings')
-        .select('*')
-        .limit(1)
-        .single();
-
-      if (settingsError) {
-        // Tables don't exist, set system as disabled
-        console.warn('Loyalty system not set up yet:', settingsError.message);
-        setSystemSettings({
-          id: 'default',
-          is_system_enabled: false,
-          global_coins_multiplier: 1.00,
-          default_coins_per_rupee: 0.10,
-          min_coins_to_redeem: 10,
-          festive_multiplier: 1.00
-        } as LoyaltySystemSettings);
-        setWallet(null);
-        setTransactions([]);
-        setLoading(false);
-        return;
-      }
-
-      // If settings exist, try to load other data
-      setSystemSettings(settingsData as LoyaltySystemSettings);
+      // Load system settings first
+      await fetchSystemSettings();
       
-      if (settingsData?.is_system_enabled) {
-        await Promise.all([
-          fetchWallet(),
-          fetchTransactions()
-        ]);
-      }
+      // Then load user-specific data in parallel
+      await Promise.all([
+        fetchWallet(),
+        fetchTransactions()
+      ]);
     } catch (err) {
-      console.error('Error loading loyalty data:', err);
+      console.error('❌ Error loading loyalty data:', err);
       setError('Failed to load loyalty data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, fetchSystemSettings, fetchWallet, fetchTransactions]);
 
-  // Initialize wallet after data is loaded
+  // Initialize wallet after data is loaded (only once)
   useEffect(() => {
-    if (user && !loading && !wallet) {
+    if (user && !loading && !wallet && systemSettings?.is_system_enabled && !initializingWallet.current) {
       initializeWallet();
     }
-  }, [user, loading, wallet]);
+  }, [user, loading, wallet, systemSettings?.is_system_enabled, initializeWallet]);
 
-  // Effect to load data when user changes
+  // Effect to load data when user changes (only once per user)
   useEffect(() => {
     loadData();
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id to prevent unnecessary reloads
 
-  // Real-time subscription for wallet updates
+  // Real-time subscription for wallet updates (with error handling)
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id || !systemSettings?.is_system_enabled) return;
 
     const walletSubscription = loyaltySupabase
-      .channel('loyalty_wallet_changes')
+      .channel(`loyalty_wallet_${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -406,13 +430,14 @@ export const useLoyaltyCoins = () => {
           filter: `user_id=eq.${user.id}`
         },
         () => {
+          console.log('🔄 Wallet updated, refreshing...');
           fetchWallet();
         }
       )
       .subscribe();
 
     const transactionSubscription = loyaltySupabase
-      .channel('loyalty_transaction_changes')
+      .channel(`loyalty_transaction_${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -422,6 +447,7 @@ export const useLoyaltyCoins = () => {
           filter: `user_id=eq.${user.id}`
         },
         () => {
+          console.log('🔄 New transaction, refreshing...');
           fetchTransactions();
         }
       )
@@ -431,7 +457,39 @@ export const useLoyaltyCoins = () => {
       walletSubscription.unsubscribe();
       transactionSubscription.unsubscribe();
     };
-  }, [user]);
+  }, [user?.id, systemSettings?.is_system_enabled, fetchWallet, fetchTransactions]);
+
+  // Computed values with memoization
+  const isSystemEnabled = systemSettings?.is_system_enabled || false;
+  const minCoinsToRedeem = systemSettings?.min_coins_to_redeem || 10;
+  const isFestiveActive = systemSettings?.is_festive_active || false;
+
+  // Only log state changes when there's an actual change (reduce console spam)
+  const prevState = useRef({ isSystemEnabled: false, systemSettings: null, wallet: null, loading: true });
+  useEffect(() => {
+    const currentState = {
+      isSystemEnabled,
+      systemSettings: systemSettings ? {
+        id: systemSettings.id,
+        enabled: systemSettings.is_system_enabled,
+        coinsPerRupee: systemSettings.default_coins_per_rupee
+      } : null,
+      wallet: wallet ? {
+        id: wallet.id,
+        availableCoins: wallet.available_coins
+      } : null,
+      loading
+    };
+    
+    // Only log if state actually changed
+    const currentStateStr = JSON.stringify(currentState);
+    const prevStateStr = JSON.stringify(prevState.current);
+    
+    if (currentStateStr !== prevStateStr) {
+      console.log('🔍 useLoyaltyCoins: State changed:', currentState);
+      prevState.current = currentState;
+    }
+  }, [isSystemEnabled, systemSettings, wallet, loading]);
 
   return {
     // Data
@@ -452,14 +510,8 @@ export const useLoyaltyCoins = () => {
     loadData,
 
     // Computed values
-    isSystemEnabled: (() => {
-      const enabled = systemSettings?.is_system_enabled || false;
-      console.log('🔍 useLoyaltyCoins: isSystemEnabled =', enabled, 'systemSettings =', systemSettings);
-      return enabled;
-    })(),
-    minCoinsToRedeem: systemSettings?.min_coins_to_redeem || 10,
-    isFestiveActive: systemSettings?.festive_start_date && systemSettings?.festive_end_date 
-      ? new Date() >= new Date(systemSettings.festive_start_date) && new Date() <= new Date(systemSettings.festive_end_date)
-      : false
+    isSystemEnabled,
+    minCoinsToRedeem,
+    isFestiveActive
   };
 };

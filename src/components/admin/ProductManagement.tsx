@@ -12,8 +12,9 @@ import { MultipleImageUpload } from '@/components/ui/MultipleImageUpload';
 import { TableShimmer } from '@/components/ui/shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { useProductImages } from '@/hooks/useProductImages';
+import { useProductAffiliate } from '@/hooks/useProductAffiliate';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Edit, Trash2, Star, Package, Coins } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, Package, Coins, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProductImage {
@@ -64,6 +65,7 @@ export default function ProductManagement() {
   const [loading, setLoading] = useState(false);
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
   const { saveImages } = useProductImages();
+  const { updateProductAffiliateSettings, getProductAffiliateSettings, calculateCommission } = useProductAffiliate();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -83,7 +85,11 @@ export default function ProductManagement() {
     is_featured: false,
     coins_earned_per_purchase: 0,
     coins_required_to_buy: 0,
-    is_coin_purchase_enabled: false
+    is_coin_purchase_enabled: false,
+    // Affiliate settings
+    is_affiliate_enabled: false,
+    affiliate_commission_type: 'percentage' as 'fixed' | 'percentage',
+    affiliate_commission_value: 5
   });
 
   useEffect(() => {
@@ -102,7 +108,18 @@ export default function ProductManagement() {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Products fetch error:', error);
+        // Try without categories relationship if it fails
+        const { data: productsOnly, error: productsError } = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (productsError) throw productsError;
+        setProducts(productsOnly || []);
+        return;
+      }
       setProducts(data || []);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -151,13 +168,14 @@ export default function ProductManagement() {
             .from('products')
             .select('slug')
             .eq('slug', baseSlug)
-            .single();
+            .maybeSingle(); // Use maybeSingle to avoid 406 errors
             
           if (!slugError && existingProduct && (!editingProduct || existingProduct.slug !== editingProduct.slug)) {
             uniqueSlug = `${baseSlug}-${Date.now()}`;
           }
         } catch (error) {
           // If error checking slug, use timestamp to ensure uniqueness
+          console.warn('Slug validation error:', error);
           uniqueSlug = `${baseSlug}-${Date.now()}`;
         }
       }
@@ -206,17 +224,58 @@ export default function ProductManagement() {
         productId = editingProduct.id;
         toast.success('Product updated successfully');
       } else {
+        // Generate unique SKU to avoid conflicts
+        let finalSku = formData.sku;
+        if (!finalSku) {
+          finalSku = `PS${Date.now()}`;
+        } else {
+          // Check if SKU exists and make it unique
+          try {
+            const { data: existingSku } = await supabase
+              .from('products')
+              .select('sku')
+              .eq('sku', finalSku)
+              .maybeSingle();
+              
+            if (existingSku) {
+              finalSku = `${formData.sku}-${Date.now()}`;
+            }
+          } catch (error) {
+            console.warn('SKU validation error:', error);
+            finalSku = `${formData.sku}-${Date.now()}`;
+          }
+        }
+        
+        // Update productData with unique SKU
+        const finalProductData = { ...productData, sku: finalSku };
+        
         const { data, error } = await supabase
           .from('products')
-          .insert([productData])
+          .insert([finalProductData])
           .select('id')
           .single();
 
         if (error) {
           console.error('Insert error:', error);
-          throw error;
+          // If still getting SKU conflict, try with timestamp
+          if (error.code === '23505' && error.message.includes('sku')) {
+            const retryData = { ...finalProductData, sku: `${finalSku}-${Date.now()}` };
+            const { data: retryResult, error: retryError } = await supabase
+              .from('products')
+              .insert([retryData])
+              .select('id')
+              .single();
+              
+            if (retryError) {
+              throw retryError;
+            }
+            productId = retryResult.id;
+          } else {
+            throw error;
+          }
+        } else {
+          productId = data.id;
         }
-        productId = data.id;
         toast.success('Product created successfully');
       }
 
@@ -230,62 +289,63 @@ export default function ProductManagement() {
         }
       }
 
-      // Create/Update loyalty settings if any loyalty values are provided
-      if (formData.coins_earned_per_purchase > 0 || formData.coins_required_to_buy > 0 || formData.is_coin_purchase_enabled) {
-        try {
-          const loyaltySettings = {
-            product_id: productId,
-            coins_earned_per_purchase: formData.coins_earned_per_purchase || 0,
-            coins_required_to_buy: formData.coins_required_to_buy || 0,
-            is_coin_purchase_enabled: formData.is_coin_purchase_enabled,
-            is_coin_earning_enabled: formData.coins_earned_per_purchase > 0,
-            updated_at: new Date().toISOString()
-          };
+      // Create/Update loyalty settings - ALWAYS save loyalty settings for every product
+      try {
+        const loyaltySettings = {
+          product_id: productId,
+          coins_earned_per_purchase: formData.coins_earned_per_purchase || 0,
+          coins_required_to_buy: formData.coins_required_to_buy || 0,
+          is_coin_purchase_enabled: formData.is_coin_purchase_enabled || false,
+          is_coin_earning_enabled: (formData.coins_earned_per_purchase || 0) > 0,
+          updated_at: new Date().toISOString()
+        };
 
-          console.log('Creating loyalty settings:', loyaltySettings);
+        console.log('Creating loyalty settings:', loyaltySettings);
 
-          // Try to insert first, then update if conflict
-          const { error: insertError } = await (supabase as any)
-            .from('loyalty_product_settings')
-            .insert(loyaltySettings);
+        // Use upsert to handle both insert and update
+        const { error: loyaltyError } = await (supabase as any)
+          .from('loyalty_product_settings')
+          .upsert(loyaltySettings, { 
+            onConflict: 'product_id',
+            ignoreDuplicates: false 
+          });
 
-          if (insertError) {
-            // If insert fails due to conflict, try update
-            if (insertError.code === '23505') {
-              const { error: updateError } = await (supabase as any)
-                .from('loyalty_product_settings')
-                .update({
-                  coins_earned_per_purchase: loyaltySettings.coins_earned_per_purchase,
-                  coins_required_to_buy: loyaltySettings.coins_required_to_buy,
-                  is_coin_purchase_enabled: loyaltySettings.is_coin_purchase_enabled,
-                  is_coin_earning_enabled: loyaltySettings.is_coin_earning_enabled,
-                  updated_at: loyaltySettings.updated_at
-                })
-                .eq('product_id', productId);
-
-              if (updateError) {
-                console.error('Loyalty settings update error:', updateError);
-                toast.error(`Product saved but loyalty settings failed: ${updateError.message}`);
-              } else {
-                console.log('Loyalty settings updated successfully');
-              }
-            } else {
-              console.error('Loyalty settings insert error:', insertError);
-              toast.error(`Product saved but loyalty settings failed: ${insertError.message}`);
-            }
-          } else {
-            console.log('Loyalty settings created successfully');
-          }
-        } catch (loyaltyError) {
-          console.error('Loyalty settings error:', loyaltyError);
-          toast.error('Product saved but loyalty settings failed to save');
+        if (loyaltyError) {
+          console.error('Loyalty settings upsert error:', loyaltyError);
+          toast.error(`Product saved but loyalty settings failed: ${loyaltyError.message}`);
+        } else {
+          console.log('Loyalty settings saved successfully');
         }
+      } catch (loyaltyError) {
+        console.error('Loyalty settings error:', loyaltyError);
+        toast.error('Product saved but loyalty settings failed to save');
+      }
+
+      // Create/Update affiliate settings
+      try {
+        await updateProductAffiliateSettings(productId, {
+          is_affiliate_enabled: formData.is_affiliate_enabled,
+          commission_type: formData.affiliate_commission_type,
+          commission_value: formData.affiliate_commission_value
+        });
+        console.log('Affiliate settings updated successfully');
+      } catch (affiliateError) {
+        console.error('Affiliate settings error:', affiliateError);
+        toast.error('Product saved but affiliate settings failed to save');
       }
 
       setIsDialogOpen(false);
       setEditingProduct(null);
       resetForm();
-      fetchProducts();
+      
+      // Fetch products with error handling
+      try {
+        await fetchProducts();
+      } catch (fetchError) {
+        console.error('Error refreshing products list:', fetchError);
+        // Don't show error to user since product was saved successfully
+        // Just log it for debugging
+      }
     } catch (error: any) {
       console.error('Error saving product:', error);
       
@@ -358,6 +418,18 @@ export default function ProductManagement() {
       console.log('No loyalty settings found for product:', product.id);
     }
 
+    // Load affiliate settings from product_affiliate_settings table
+    let affiliateSettings = null;
+    try {
+      const affiliateData = await getProductAffiliateSettings(product.id);
+      if (affiliateData) {
+        affiliateSettings = affiliateData;
+        console.log('Loaded affiliate settings:', affiliateSettings);
+      }
+    } catch (error) {
+      console.log('No affiliate settings found for product:', product.id);
+    }
+
     setFormData({
       name: product.name,
       description: product.description || '',
@@ -377,7 +449,11 @@ export default function ProductManagement() {
       // Use loyalty settings from loyalty_product_settings table if available, otherwise fallback to product table
       coins_earned_per_purchase: loyaltySettings?.coins_earned_per_purchase || (product as any).coins_earned_per_purchase || 0,
       coins_required_to_buy: loyaltySettings?.coins_required_to_buy || (product as any).coins_required_to_buy || 0,
-      is_coin_purchase_enabled: loyaltySettings?.is_coin_purchase_enabled || (product as any).is_coin_purchase_enabled || false
+      is_coin_purchase_enabled: loyaltySettings?.is_coin_purchase_enabled || (product as any).is_coin_purchase_enabled || false,
+      // Affiliate settings
+      is_affiliate_enabled: affiliateSettings?.is_affiliate_enabled || false,
+      affiliate_commission_type: affiliateSettings?.commission_type || 'percentage',
+      affiliate_commission_value: affiliateSettings?.commission_value || 5
     });
     setIsDialogOpen(true);
   };
@@ -419,7 +495,11 @@ export default function ProductManagement() {
       is_featured: false,
       coins_earned_per_purchase: 0,
       coins_required_to_buy: 0,
-      is_coin_purchase_enabled: false
+      is_coin_purchase_enabled: false,
+      // Affiliate settings
+      is_affiliate_enabled: false,
+      affiliate_commission_type: 'percentage' as 'fixed' | 'percentage',
+      affiliate_commission_value: 5
     });
     setProductImages([]);
   };
@@ -691,6 +771,73 @@ export default function ProductManagement() {
                   <div className="text-xs text-yellow-700 bg-yellow-100 p-2 rounded">
                     <strong>Preview:</strong> Users with {formData.coins_required_to_buy} coins can redeem this product for free 
                     (≈ ₹{(formData.coins_required_to_buy * 0.1).toFixed(2)} value)
+                  </div>
+                )}
+              </div>
+
+              {/* Affiliate Marketing Settings */}
+              <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
+                <div className="flex items-center space-x-2">
+                  <Users className="h-5 w-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-blue-800">Affiliate Marketing Settings</h3>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="is_affiliate_enabled"
+                    checked={formData.is_affiliate_enabled}
+                    onChange={(e) => setFormData({ ...formData, is_affiliate_enabled: e.target.checked })}
+                  />
+                  <Label htmlFor="is_affiliate_enabled" className="text-sm">
+                    Enable Affiliate Marketing for this Product
+                  </Label>
+                </div>
+
+                {formData.is_affiliate_enabled && (
+                  <div className="space-y-4 pl-6 border-l-2 border-blue-200">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="affiliate_commission_type">Commission Type</Label>
+                        <Select 
+                          value={formData.affiliate_commission_type} 
+                          onValueChange={(value: 'fixed' | 'percentage') => setFormData({ ...formData, affiliate_commission_type: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="percentage">Percentage (%)</SelectItem>
+                            <SelectItem value="fixed">Fixed Amount (₹)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="affiliate_commission_value">
+                          Commission Value {formData.affiliate_commission_type === 'percentage' ? '(%)' : '(₹)'}
+                        </Label>
+                        <Input
+                          id="affiliate_commission_value"
+                          type="number"
+                          min="0"
+                          step={formData.affiliate_commission_type === 'percentage' ? '0.1' : '1'}
+                          max={formData.affiliate_commission_type === 'percentage' ? '100' : undefined}
+                          value={formData.affiliate_commission_value}
+                          onChange={(e) => setFormData({ ...formData, affiliate_commission_value: Number(e.target.value) })}
+                          placeholder={formData.affiliate_commission_type === 'percentage' ? 'e.g., 5' : 'e.g., 50'}
+                        />
+                      </div>
+                    </div>
+                    
+                    {formData.affiliate_commission_value > 0 && (
+                      <div className="text-xs text-blue-700 bg-blue-100 p-2 rounded">
+                        <strong>Preview:</strong> Affiliates will earn{' '}
+                        {formData.affiliate_commission_type === 'percentage' 
+                          ? `${formData.affiliate_commission_value}% commission (₹${(((formData.offer_price || formData.price) * formData.affiliate_commission_value) / 100).toFixed(2)} per sale)`
+                          : `₹${formData.affiliate_commission_value} per sale`
+                        }
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

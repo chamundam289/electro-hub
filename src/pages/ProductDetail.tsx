@@ -26,7 +26,8 @@ import {
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAffiliate } from '@/hooks/useAffiliate';
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -38,8 +39,27 @@ const ProductDetail = () => {
     limit: 4 
   });
   const { data: settings } = useStoreSettings();
+  const { trackAffiliateClick } = useAffiliate();
   
   const [quantity, setQuantity] = useState(1);
+
+  // Track affiliate click if ref parameter is present
+  useEffect(() => {
+    if (product?.id) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const affiliateRef = urlParams.get('ref');
+      
+      if (affiliateRef) {
+        console.log('Tracking affiliate click:', affiliateRef, product.id);
+        trackAffiliateClick(affiliateRef, product.id);
+        
+        // Clean URL by removing ref parameter
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('ref');
+        window.history.replaceState({}, '', newUrl.toString());
+      }
+    }
+  }, [product?.id, trackAffiliateClick]);
 
   if (isLoading) {
     return (

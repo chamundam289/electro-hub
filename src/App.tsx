@@ -25,6 +25,9 @@ import AuthCallback from "./components/auth/AuthCallback";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminSetup from "./pages/admin/AdminSetup";
 import AdminDashboard from "./pages/AdminDashboard";
+import AffiliateLogin from "./pages/AffiliateLogin";
+import AffiliateDashboard from "./pages/AffiliateDashboard";
+import AffiliateProfile from "./pages/AffiliateProfile";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -61,6 +64,9 @@ const App = () => (
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/affiliate/login" element={<AffiliateLogin />} />
+                  <Route path="/affiliate/dashboard" element={<AffiliateDashboard />} />
+                  <Route path="/affiliate/profile" element={<AffiliateProfile />} />
                   <Route path="/admin/login" element={<AdminLogin />} />
                   <Route path="/admin/setup" element={<AdminSetup />} />
                   <Route path="/admin" element={

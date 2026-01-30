@@ -1173,18 +1173,19 @@ Thank you for choosing ElectroStore! 🙏
                 placeholder="Any additional notes or special instructions"
                 rows={2}
               />
-              </div>
-              
-              <div className="flex justify-end space-x-2 mt-6">
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddRepair} disabled={loading}>
-                  {loading ? 'Registering...' : 'Register Repair'}
-                </Button>
-              </div>
             </div>
           </div>
+              
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddRepair} disabled={loading}>
+              {loading ? 'Registering...' : 'Register Repair'}
+            </Button>
+          </div>
+        </div>
+      </div>
         </DialogContent>
       </Dialog>
       {/* Edit Repair Dialog */}

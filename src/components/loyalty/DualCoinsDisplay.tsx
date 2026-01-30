@@ -66,7 +66,15 @@ export const DualCoinsDisplay = ({
       try {
         console.log('🔄 DualCoinsDisplay: Calling getProductLoyaltySettings...');
         const settings = await getProductLoyaltySettings(productId);
-        console.log('📦 DualCoinsDisplay: Received settings:', settings);
+        console.log('📦 DualCoinsDisplay: Received settings:', {
+          productId,
+          settings: settings ? {
+            coinsEarned: settings.coins_earned_per_purchase,
+            coinsRequired: settings.coins_required_to_buy,
+            canPurchase: settings.is_coin_purchase_enabled,
+            canEarn: settings.is_coin_earning_enabled
+          } : null
+        });
         setProductSettings(settings);
       } catch (error) {
         console.error('❌ DualCoinsDisplay: Error loading product loyalty settings:', error);
@@ -92,11 +100,14 @@ export const DualCoinsDisplay = ({
   const coinsNeeded = Math.max(0, coinsRequired - userCoins);
 
   console.log('💰 DualCoinsDisplay: Coin values -', {
+    productId,
     coinsRequired,
     coinsEarned,
     isCoinRedeemEnabled,
-    productSettings,
-    mode
+    hasProductSettings: !!productSettings,
+    mode,
+    isSystemEnabled,
+    loading
   });
 
   // If no loyalty settings configured for this product, show setup message

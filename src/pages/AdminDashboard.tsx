@@ -24,7 +24,8 @@ import {
   Smartphone,
   Wrench,
   Truck,
-  Coins
+  Coins,
+  Share2
 } from 'lucide-react';
 
 // Import admin components
@@ -48,6 +49,7 @@ import AdvancedReports from '@/components/admin/AdvancedReports';
 import AdminTest from '@/components/admin/AdminTest';
 import MobileRecharge from '@/components/admin/MobileRecharge';
 import MobileRepair from '@/components/admin/MobileRepair';
+import AffiliateManagement from '@/components/admin/AffiliateManagement';
 import LoyaltyManagement from '@/components/admin/LoyaltyManagement';
 
 export default function AdminDashboard() {
@@ -112,6 +114,7 @@ export default function AdminDashboard() {
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'expenses', label: 'Expenses', icon: DollarSign },
     { id: 'loyalty', label: 'Loyalty Coins', icon: Coins },
+    { id: 'affiliates', label: 'Affiliate Marketing', icon: Share2 },
     { id: 'mobile-recharge', label: 'Mobile Recharge', icon: Smartphone },
     { id: 'mobile-repair', label: 'Mobile Repair', icon: Wrench },
     
@@ -194,6 +197,7 @@ export default function AdminDashboard() {
               {activeTab === 'payments' && <PaymentManagement />}
               {activeTab === 'expenses' && <ExpenseManagement />}
               {activeTab === 'loyalty' && <LoyaltyManagement />}
+              {activeTab === 'affiliates' && <AffiliateManagement />}
               {activeTab === 'mobile-recharge' && <MobileRecharge />}
               {activeTab === 'mobile-repair' && <MobileRepair />}
               {activeTab === 'leads' && <LeadManagement />}

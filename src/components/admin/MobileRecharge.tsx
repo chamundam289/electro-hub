@@ -952,18 +952,19 @@ Thank you for choosing ElectroStore! 🙏
                 onChange={(e) => setNewRecharge({...newRecharge, notes: e.target.value})}
                 placeholder="Additional notes (optional)"
               />
-              </div>
-              
-              <div className="flex justify-end space-x-2 mt-6">
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddRecharge} disabled={loading}>
-                  {loading ? 'Processing...' : 'Process Recharge'}
-                </Button>
-              </div>
             </div>
           </div>
+              
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddRecharge} disabled={loading}>
+              {loading ? 'Processing...' : 'Process Recharge'}
+            </Button>
+          </div>
+        </div>
+      </div>
         </DialogContent>
       </Dialog>
 

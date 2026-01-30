@@ -24,6 +24,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrders } from '@/contexts/OrderContext';
 import { useLoyaltyCoins } from '@/hooks/useLoyaltyCoins';
+import { useAffiliate } from '@/hooks/useAffiliate';
 import { CoinRedemptionModal } from '@/components/loyalty/CoinRedemptionModal';
 import { toast } from 'sonner';
 
@@ -32,6 +33,7 @@ const Checkout = () => {
   const { user } = useAuth();
   const { items: cartItems, getTotalPrice } = useCart();
   const { createOrder } = useOrders();
+  const { processAffiliateOrder } = useAffiliate();
   const { 
     wallet, 
     calculateCoinsEarned, 
@@ -143,6 +145,14 @@ const Checkout = () => {
         coins_earned: useCoins ? 0 : coinsEarned, // No coins earned if coins were used for discount
         items: orderItems
       });
+
+      // Process affiliate order if applicable
+      try {
+        await processAffiliateOrder(newOrder.id, orderItems);
+      } catch (affiliateError) {
+        console.error('Error processing affiliate order:', affiliateError);
+        // Don't fail the order if affiliate processing fails
+      }
 
       // Store order ID in sessionStorage to pass to confirmation page
       sessionStorage.setItem('lastOrderId', newOrder.id);
