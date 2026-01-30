@@ -4,6 +4,125 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Modern E-commerce Design System - Inline */
+:root {
+  /* Spacing System (8px grid) */
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+
+  /* Modern Colors */
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-light: #3b82f6;
+  --primary-bg: #eff6ff;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Transitions */
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 250ms ease-in-out;
+}
+
+/* Modern Animations */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Modern Typography */
+.text-display {
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.text-body {
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Container */
+.container-modern {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 768px) {
+  .container-modern {
+    padding: 0 1.5rem;
+  }
+}
+
+/* Safe Area for Mobile */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* High Contrast CTA */
+.cta-high-contrast {
+  background: #111827;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-weight: 700;
+  transition: all 150ms ease-in-out;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cta-high-contrast:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
 /* ElectroStore Design System - Modern Tech E-commerce Theme */
 
 @layer base {
@@ -346,31 +465,6 @@
     color: hsl(var(--primary-foreground));
   }
 
-  /* WhatsApp Button */
-  .whatsapp-btn {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 font-semibold rounded-lg transition-all duration-200;
-    background: hsl(142 76% 36%);
-    color: white;
-  }
-
-  .whatsapp-btn:hover {
-    background: hsl(142 76% 30%);
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-  }
-
-  .whatsapp-popup-btn {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-3 font-semibold rounded-lg transition-all duration-200 shadow-lg;
-    background: hsl(142 76% 36%);
-    color: white;
-  }
-
-  .whatsapp-popup-btn:hover {
-    background: hsl(142 76% 30%);
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
-  }
-
   /* Price Styles */
   .price-original {
     @apply text-muted-foreground line-through text-sm;
@@ -649,6 +743,8 @@
 
   .animate-shimmer {
     animation: shimmer 1.5s ease-in-out infinite;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
   }
 
   @keyframes shimmer {

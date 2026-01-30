@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TableShimmer, StatsCardShimmer } from '@/components/ui/shimmer';
+import { TableShimmer, StatsCardShimmer } from '@/components/ui/Shimmer';
 import { supabase } from '@/integrations/supabase/client';
 
 // Type assertion helper for loyalty tables

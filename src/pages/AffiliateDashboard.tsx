@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { DataPagination } from '@/components/ui/data-pagination';
-import { TableShimmer } from '@/components/ui/shimmer';
+import { TableShimmer } from '@/components/ui/Shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { useAffiliate } from '@/hooks/useAffiliate';
 import { useProductAffiliate } from '@/hooks/useProductAffiliate';
@@ -899,7 +899,7 @@ export default function AffiliateDashboard() {
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                   
-                                  {/* Quick WhatsApp Share */}
+                                  {/* Quick Share */}
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -907,7 +907,7 @@ export default function AffiliateDashboard() {
                                     className="flex-1 text-green-600 hover:text-green-700 hover:bg-green-50"
                                   >
                                     <MessageCircle className="h-3 w-3 mr-1" />
-                                    WhatsApp
+                                    Share
                                   </Button>
                                 </div>
                                 

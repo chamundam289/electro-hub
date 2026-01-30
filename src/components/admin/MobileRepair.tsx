@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DataPagination } from '@/components/ui/data-pagination';
-import { TableShimmer, StatsCardShimmer } from '@/components/ui/shimmer';
+import { TableShimmer, StatsCardShimmer } from '@/components/ui/Shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, Plus, Wrench, CreditCard, Calendar, Filter, Eye, Edit, Trash2, Mail, MessageCircle, Smartphone } from 'lucide-react';

@@ -87,14 +87,14 @@ export const useAffiliateStatus = () => {
           console.log('Affiliate function not available, trying direct query');
         }
 
-        // Fallback: Try direct role check
+        // Fallback: Try direct role check with better error handling
         try {
           const { data: roleData, error: roleError } = await supabase
             .from('user_roles')
             .select('*')
             .eq('user_id', user.id)
             .eq('role', 'affiliate')
-            .single();
+            .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no data
 
           if (!roleError && roleData) {
             setIsAffiliate(true);
@@ -108,7 +108,7 @@ export const useAffiliateStatus = () => {
             setAffiliateData(null);
           }
         } catch (roleError) {
-          console.log('Role check failed, assuming not affiliate');
+          console.log('Role check failed, assuming not affiliate:', roleError);
           setIsAffiliate(false);
           setAffiliateData(null);
         }

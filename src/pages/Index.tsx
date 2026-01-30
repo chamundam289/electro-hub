@@ -1,15 +1,19 @@
 import { MainLayout } from '@/components/layout/MainLayout';
-import { HeroSection } from '@/components/home/HeroSection';
-import { CategoriesSection } from '@/components/home/CategoriesSection';
-import { FeaturedProducts } from '@/components/home/FeaturedProducts';
-import { LoyaltyCoinsSection } from '@/components/home/LoyaltyCoinsSection';
-import { DealsSection } from '@/components/home/DealsSection';
-import { WhyChooseUs } from '@/components/home/WhyChooseUs';
+import { LazyWrapper, LazySection } from '@/components/ui/LazyWrapper';
+import { HeroSectionShimmer, CategoriesSectionShimmer, FeaturedProductsShimmer } from '@/components/ui/Shimmer';
 import OAuthRedirectHandler from '@/components/auth/OAuthRedirectHandler';
 import SimpleRedirectFix from '@/components/auth/SimpleRedirectFix';
 import WelcomeDialog from '@/components/auth/WelcomeDialog';
-// import CompactWelcomeDialog from '@/components/auth/CompactWelcomeDialog';
 import { useWelcomeDialog } from '@/hooks/useWelcomeDialog';
+import { lazy } from 'react';
+
+// Lazy load components
+const HeroSection = lazy(() => import('@/components/home/HeroSection').then(module => ({ default: module.HeroSection })));
+const CategoriesSection = lazy(() => import('@/components/home/CategoriesSection').then(module => ({ default: module.CategoriesSection })));
+const FeaturedProducts = lazy(() => import('@/components/home/FeaturedProducts').then(module => ({ default: module.FeaturedProducts })));
+const LoyaltyCoinsSection = lazy(() => import('@/components/home/LoyaltyCoinsSection').then(module => ({ default: module.LoyaltyCoinsSection })));
+const DealsSection = lazy(() => import('@/components/home/DealsSection').then(module => ({ default: module.DealsSection })));
+const WhyChooseUs = lazy(() => import('@/components/home/WhyChooseUs').then(module => ({ default: module.WhyChooseUs })));
 
 const Index = () => {
   const { showWelcome, hideWelcome } = useWelcomeDialog();
@@ -31,12 +35,38 @@ const Index = () => {
       /> */}
       
       <MainLayout>
-        <HeroSection />
-        <CategoriesSection />
-        <FeaturedProducts />
-        <LoyaltyCoinsSection />
-        <DealsSection />
-        <WhyChooseUs />
+        <LazyWrapper 
+          delay={50}
+          fallback={<HeroSectionShimmer />}
+        >
+          <HeroSection />
+        </LazyWrapper>
+        
+        <LazySection 
+          delay={200}
+          fallback={<CategoriesSectionShimmer />}
+        >
+          <CategoriesSection />
+        </LazySection>
+        
+        <LazySection 
+          delay={350}
+          fallback={<FeaturedProductsShimmer />}
+        >
+          <FeaturedProducts />
+        </LazySection>
+        
+        <LazySection delay={500}>
+          <LoyaltyCoinsSection />
+        </LazySection>
+        
+        <LazySection delay={650}>
+          <DealsSection />
+        </LazySection>
+        
+        <LazySection delay={800}>
+          <WhyChooseUs />
+        </LazySection>
       </MainLayout>
     </>
   );

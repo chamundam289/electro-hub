@@ -29,13 +29,7 @@ export function ProductCard({ product }: ProductCardProps) {
     : 0;
   
   const finalPrice = product.offer_price || product.price;
-
-  const whatsappNumber = settings?.whatsapp_number?.replace(/\D/g, '') || '';
   const productUrl = `${window.location.origin}/products/${product.slug}`;
-  const whatsappMessage = encodeURIComponent(
-    `Hi! I'm interested in ordering:\n\n*${product.name}*\nPrice: ₹${(product.offer_price || product.price).toFixed(2)}\n\nProduct Link: ${productUrl}`
-  );
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   const handleAddToWishlist = () => {
     if (!user) {
@@ -173,17 +167,6 @@ export function ProductCard({ product }: ProductCardProps) {
             <ShoppingCart className="w-3 h-3 mr-1" />
             Add to Cart
           </Button>
-          <a
-            href={whatsappLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1"
-          >
-            <Button size="sm" className="w-full h-8 text-xs bg-green-600 hover:bg-green-700">
-              <MessageCircle className="w-3 h-3 mr-1" />
-              WhatsApp
-            </Button>
-          </a>
         </div>
       </div>
     </div>

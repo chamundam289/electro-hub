@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { LazyWrapper } from '@/components/ui/LazyWrapper';
+import { ProfileShimmer } from '@/components/ui/Shimmer';
 import { 
   ArrowLeft, 
   User, 

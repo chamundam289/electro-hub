@@ -3,6 +3,8 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { ProductGrid } from '@/components/products/ProductGrid';
 import { ProductFilters } from '@/components/products/ProductFilters';
 import { useProducts } from '@/hooks/useProducts';
+import { LazyWrapper } from '@/components/ui/LazyWrapper';
+import { ProductsGridShimmer } from '@/components/ui/Shimmer';
 
 const Products = () => {
   const { data: allProducts, isLoading } = useProducts();
@@ -108,7 +110,12 @@ const Products = () => {
         </div>
 
         {/* Product Grid */}
-        <ProductGrid products={filteredProducts} isLoading={isLoading} />
+        <LazyWrapper 
+          delay={200}
+          fallback={<ProductsGridShimmer count={12} />}
+        >
+          <ProductGrid products={filteredProducts} isLoading={isLoading} />
+        </LazyWrapper>
 
         {/* No Results */}
         {!isLoading && filteredProducts.length === 0 && allProducts && allProducts.length > 0 && (

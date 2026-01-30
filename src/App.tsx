@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { OrderProvider } from "@/contexts/OrderContext";
+import { LoadingProvider } from "@/contexts/LoadingContext";
 import URLHashHandler from "./components/auth/URLHashHandler";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
@@ -48,8 +49,9 @@ const App = () => (
                   v7_relativeSplatPath: true
                 }}
               >
-                <URLHashHandler />
-                <Routes>
+                <LoadingProvider>
+                  <URLHashHandler />
+                  <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/products" element={<Products />} />
                   <Route path="/products/:slug" element={<ProductDetail />} />
@@ -81,13 +83,14 @@ const App = () => (
                   } />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </OrderProvider>
-        </WishlistProvider>
-      </CartProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+              </LoadingProvider>
+            </BrowserRouter>
+          </TooltipProvider>
+        </OrderProvider>
+      </WishlistProvider>
+    </CartProvider>
+  </AuthProvider>
+</QueryClientProvider>
 );
 
 export default App;

@@ -32,13 +32,6 @@ export function Header() {
   const cartCount = getCartCount();
   const wishlistCount = getWishlistCount();
 
-  const handleWhatsAppClick = () => {
-    const link = getFloatingButtonLink();
-    if (link !== '#') {
-      window.open(link, '_blank');
-    }
-  };
-
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-white backdrop-blur supports-[backdrop-filter]:bg-white/95">
       <div className="container-fluid">
@@ -137,17 +130,6 @@ export function Header() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
-            {settings?.whatsapp_number && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleWhatsAppClick}
-                className="items-center gap-2 text-sm font-medium text-muted-foreground hover:text-green-600 hover:bg-green-50 transition-colors"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span>WhatsApp</span>
-              </Button>
-            )}
 
             <Link to="/orders" className="relative">
               <Button variant="ghost" size="icon" title="Orders">
@@ -268,19 +250,6 @@ export function Header() {
                   </Link>
                 )}
               </div>
-
-              {settings?.whatsapp_number && (
-                <button
-                  onClick={() => {
-                    handleWhatsAppClick();
-                    setIsMenuOpen(false);
-                  }}
-                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  <span>WhatsApp</span>
-                </button>
-              )}
             </div>
           </nav>
         )}

@@ -3,14 +3,7 @@ import { Zap, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube, Linked
 import { useWebsiteSettings } from '@/hooks/useWebsiteSettings';
 
 export function Footer() {
-  const { settings, getFloatingButtonLink } = useWebsiteSettings();
-
-  const handleWhatsAppClick = () => {
-    const link = getFloatingButtonLink();
-    if (link !== '#') {
-      window.open(link, '_blank');
-    }
-  };
+  const { settings } = useWebsiteSettings();
 
   return (
     <footer className="bg-secondary text-secondary-foreground">
@@ -120,14 +113,6 @@ export function Footer() {
                   <a href={`mailto:${settings.shop_email}`} className="hover:text-primary transition-colors">
                     {settings.shop_email}
                   </a>
-                </li>
-              )}
-              {settings?.whatsapp_number && (
-                <li className="flex items-center gap-3 text-sm text-secondary-foreground/70">
-                  <MessageCircle className="h-5 w-5 shrink-0" />
-                  <button onClick={handleWhatsAppClick} className="hover:text-green-600 transition-colors">
-                    WhatsApp: {settings.whatsapp_number}
-                  </button>
                 </li>
               )}
             </ul>

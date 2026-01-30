@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { TableShimmer, StatsCardShimmer } from '@/components/ui/shimmer';
+import { TableShimmer, StatsCardShimmer } from '@/components/ui/Shimmer';
 import { DataPagination } from '@/components/ui/data-pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';

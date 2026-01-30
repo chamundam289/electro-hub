@@ -22,8 +22,8 @@ export function OfferPopup() {
     }
 
     // Check if required settings are available
-    if (!settings?.popup_image_url || !settings?.whatsapp_number) {
-      console.log('❌ Offer popup blocked: missing image or WhatsApp number');
+    if (!settings?.popup_image_url) {
+      console.log('❌ Offer popup blocked: missing image');
       return;
     }
 
@@ -39,20 +39,11 @@ export function OfferPopup() {
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [settings?.popup_enabled, settings?.popup_image_url, settings?.whatsapp_number]);
+  }, [settings?.popup_enabled, settings?.popup_image_url]);
 
   const handleClose = () => {
     console.log('🔒 Offer popup closed by user');
     setIsVisible(false);
-  };
-
-  const handleWhatsAppClick = () => {
-    console.log('📱 WhatsApp clicked from offer popup');
-    const link = getOfferPopupLink();
-    if (link !== '#') {
-      window.open(link, '_blank');
-    }
-    handleClose();
   };
 
   // Don't render if not visible
@@ -99,11 +90,10 @@ export function OfferPopup() {
           <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50">
             <div className="flex gap-3">
               <Button
-                onClick={handleWhatsAppClick}
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2 font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                onClick={handleClose}
+                className="flex-1 bg-primary hover:bg-primary/90 text-white flex items-center justify-center gap-2 font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
               >
-                <MessageCircle className="h-5 w-5" />
-                Get Offer Now
+                View Offers
               </Button>
               <Button
                 onClick={handleClose}

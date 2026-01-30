@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataPagination } from '@/components/ui/data-pagination';
 import { MultipleImageUpload } from '@/components/ui/MultipleImageUpload';
-import { TableShimmer } from '@/components/ui/shimmer';
+import { TableShimmer } from '@/components/ui/Shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { useProductImages } from '@/hooks/useProductImages';
 import { useProductAffiliate } from '@/hooks/useProductAffiliate';

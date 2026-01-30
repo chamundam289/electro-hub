@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FormShimmer, CardShimmer } from '@/components/ui/shimmer';
+import { FormShimmer, CardShimmer } from '@/components/ui/Shimmer';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 

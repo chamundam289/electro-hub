@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { DataPagination } from '@/components/ui/data-pagination';
-import { TableShimmer, StatsCardShimmer } from '@/components/ui/shimmer';
+import { TableShimmer, StatsCardShimmer } from '@/components/ui/Shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { useShipping, Shipment } from '@/hooks/useShipping';
 import { 

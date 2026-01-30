@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { StatsCardShimmer, CardShimmer, ListShimmer } from '@/components/ui/shimmer';
+import { StatsCardShimmer, CardShimmer, ListShimmer } from '@/components/ui/Shimmer';
 import DatabaseStatus from './DatabaseStatus';
 
 interface DashboardStats {

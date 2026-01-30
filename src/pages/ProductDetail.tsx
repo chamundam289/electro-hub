@@ -11,9 +11,10 @@ import { Separator } from '@/components/ui/separator';
 import { ProductCard } from '@/components/products/ProductCard';
 import { DualCoinsDisplay } from '@/components/loyalty/DualCoinsDisplay';
 import { ProductImageGallery } from '@/components/ui/ProductImageGallery';
+import { LazyWrapper } from '@/components/ui/LazyWrapper';
+import { ProductDetailShimmer } from '@/components/ui/Shimmer';
 import { 
   ArrowLeft, 
-  MessageCircle, 
   Share2, 
   Heart, 
   ShoppingCart, 
@@ -64,20 +65,9 @@ const ProductDetail = () => {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="container-fluid py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
-            <div className="grid lg:grid-cols-2 gap-12">
-              <div className="aspect-square bg-gray-200 rounded-xl"></div>
-              <div className="space-y-6">
-                <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-                <div className="h-32 bg-gray-200 rounded"></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <LazyWrapper delay={100} fallback={<ProductDetailShimmer />}>
+          <ProductDetailShimmer />
+        </LazyWrapper>
       </MainLayout>
     );
   }
@@ -105,13 +95,7 @@ const ProductDetail = () => {
     : 0;
   
   const currentPrice = product.offer_price || product.price;
-  const whatsappNumber = settings?.whatsapp_number?.replace(/\D/g, '') || '';
   const productUrl = window.location.href;
-  
-  const whatsappMessage = encodeURIComponent(
-    `Hi! I'm interested in ordering:\n\n*${product.name}*\nQuantity: ${quantity}\nPrice: ₹${(currentPrice * quantity).toFixed(2)}\n\nProduct Link: ${productUrl}`
-  );
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -322,22 +306,6 @@ const ProductDetail = () => {
                   <Share2 className="h-5 w-5" />
                 </Button>
               </div>
-              
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <Button 
-                  size="lg" 
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  disabled={product.stock_quantity === 0}
-                >
-                  <MessageCircle className="h-5 w-5 mr-2" />
-                  Order on WhatsApp
-                </Button>
-              </a>
               
               {product.stock_quantity === 0 && (
                 <p className="text-sm text-red-600 text-center">

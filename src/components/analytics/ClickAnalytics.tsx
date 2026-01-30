@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { ChartContainer, ChartConfig } from '@/components/ui/chart';
 import { DataPagination } from '@/components/ui/data-pagination';
-import { TableShimmer } from '@/components/ui/shimmer';
+import { TableShimmer } from '@/components/ui/Shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { 
   LineChart, 
