@@ -55,29 +55,16 @@ export const DualCoinsDisplay = ({
 
   useEffect(() => {
     const loadProductSettings = async () => {
-      console.log('🔍 DualCoinsDisplay: Loading settings for product:', productId);
-      
       if (!isSystemEnabled) {
-        console.log('❌ DualCoinsDisplay: System not enabled');
         setLoading(false);
         return;
       }
 
       try {
-        console.log('🔄 DualCoinsDisplay: Calling getProductLoyaltySettings...');
         const settings = await getProductLoyaltySettings(productId);
-        console.log('📦 DualCoinsDisplay: Received settings:', {
-          productId,
-          settings: settings ? {
-            coinsEarned: settings.coins_earned_per_purchase,
-            coinsRequired: settings.coins_required_to_buy,
-            canPurchase: settings.is_coin_purchase_enabled,
-            canEarn: settings.is_coin_earning_enabled
-          } : null
-        });
         setProductSettings(settings);
       } catch (error) {
-        console.error('❌ DualCoinsDisplay: Error loading product loyalty settings:', error);
+        console.error('Error loading product loyalty settings:', error);
       } finally {
         setLoading(false);
       }
@@ -87,7 +74,6 @@ export const DualCoinsDisplay = ({
   }, [productId, isSystemEnabled, getProductLoyaltySettings]);
 
   if (!isSystemEnabled || loading) {
-    console.log('🚫 DualCoinsDisplay: Not rendering -', { isSystemEnabled, loading });
     return null;
   }
 
@@ -99,20 +85,8 @@ export const DualCoinsDisplay = ({
   const userCoins = wallet?.available_coins || 0;
   const coinsNeeded = Math.max(0, coinsRequired - userCoins);
 
-  console.log('💰 DualCoinsDisplay: Coin values -', {
-    productId,
-    coinsRequired,
-    coinsEarned,
-    isCoinRedeemEnabled,
-    hasProductSettings: !!productSettings,
-    mode,
-    isSystemEnabled,
-    loading
-  });
-
   // If no loyalty settings configured for this product, show setup message
   if (!productSettings && mode === 'card') {
-    console.log('⚠️ DualCoinsDisplay: No product settings found for card mode');
     return (
       <div className="text-xs text-amber-600 italic flex items-center gap-1">
         <AlertCircle className="h-3 w-3" />
@@ -123,7 +97,6 @@ export const DualCoinsDisplay = ({
 
   // If no loyalty settings but we have some coin values, show basic info
   if (!productSettings && (coinsEarned > 0 || coinsRequired > 0)) {
-    console.log('⚠️ DualCoinsDisplay: No product settings but have coin values');
     return (
       <div className="text-xs text-gray-500 italic">
         Loyalty settings being updated...

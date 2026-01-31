@@ -898,15 +898,15 @@ Thank you for choosing ElectroStore! 🙏
               <div className="w-full overflow-x-auto">
                 <table className="w-full min-w-[1200px] table-fixed">
                   <colgroup>
-                    <col className="w-[140px]" /> {/* Customer */}
-                    <col className="w-[120px]" /> {/* Device */}
-                    <col className="w-[200px]" /> {/* Issue */}
-                    <col className="w-[100px]" /> {/* Cost */}
-                    <col className="w-[100px]" /> {/* Payment */}
-                    <col className="w-[120px]" /> {/* Status */}
-                    <col className="w-[100px]" /> {/* Technician */}
-                    <col className="w-[120px]" /> {/* Date */}
-                    <col className="w-[140px]" /> {/* Actions */}
+                    <col className="w-[140px]" />
+                    <col className="w-[120px]" />
+                    <col className="w-[200px]" />
+                    <col className="w-[100px]" />
+                    <col className="w-[100px]" />
+                    <col className="w-[120px]" />
+                    <col className="w-[100px]" />
+                    <col className="w-[120px]" />
+                    <col className="w-[140px]" />
                   </colgroup>
                   <thead>
                     <tr className="border-b bg-gray-50">

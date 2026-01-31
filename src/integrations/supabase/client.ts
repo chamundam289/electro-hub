@@ -13,5 +13,30 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  }
+});
+
+// Add error handling for auth issues
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'TOKEN_REFRESHED') {
+    console.log('🔄 Auth token refreshed successfully');
+  } else if (event === 'SIGNED_OUT') {
+    console.log('👋 User signed out');
+    // Clear any cached data
+    localStorage.removeItem('supabase.auth.token');
+    localStorage.removeItem('sb-xeufezbuuccohiardtrk-auth-token');
+  } else if (event === 'SIGNED_IN') {
+    console.log('👋 User signed in');
+  } else if (event === 'TOKEN_REFRESH_FAILED') {
+    console.warn('⚠️ Token refresh failed, clearing auth data');
+    // Clear invalid tokens
+    localStorage.removeItem('supabase.auth.token');
+    localStorage.removeItem('sb-xeufezbuuccohiardtrk-auth-token');
+    // Optionally redirect to login
+    if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+      window.location.href = '/login';
+    }
   }
 });

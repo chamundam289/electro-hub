@@ -73,7 +73,9 @@ export const useLoyaltyCoins = () => {
     fetchingSettings.current = true;
 
     try {
-      console.log('🔍 useLoyaltyCoins: Fetching system settings...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 useLoyaltyCoins: Fetching system settings...');
+      }
       
       // Use the reliable view that ALWAYS returns settings
       const { data, error } = await loyaltySupabase
@@ -99,7 +101,9 @@ export const useLoyaltyCoins = () => {
       }
 
       const settings = data as LoyaltySystemSettings;
-      console.log('✅ useLoyaltyCoins: System settings loaded successfully');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ useLoyaltyCoins: System settings loaded successfully');
+      }
       setSystemSettings(settings);
     } catch (err) {
       console.error('❌ useLoyaltyCoins: Error fetching system settings:', err);
@@ -124,7 +128,9 @@ export const useLoyaltyCoins = () => {
     fetchingWallet.current = true;
 
     try {
-      console.log('🔍 useLoyaltyCoins: Fetching wallet for user:', user.id);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 useLoyaltyCoins: Fetching wallet for user:', user.id);
+      }
       
       // Use the safe function to get or create wallet
       const { data, error } = await loyaltySupabase
@@ -160,7 +166,9 @@ export const useLoyaltyCoins = () => {
           last_updated: walletData.last_updated,
           created_at: walletData.created_at
         };
-        console.log('✅ useLoyaltyCoins: Wallet loaded successfully');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ useLoyaltyCoins: Wallet loaded successfully');
+        }
         setWallet(normalizedWallet);
       } else {
         setWallet(null);
@@ -481,12 +489,12 @@ export const useLoyaltyCoins = () => {
       loading
     };
     
-    // Only log if state actually changed
+    // Reduced logging for production
     const currentStateStr = JSON.stringify(currentState);
     const prevStateStr = JSON.stringify(prevState.current);
     
-    if (currentStateStr !== prevStateStr) {
-      console.log('🔍 useLoyaltyCoins: State changed:', currentState);
+    if (currentStateStr !== prevStateStr && process.env.NODE_ENV === 'development') {
+      console.log('useLoyaltyCoins: State changed');
       prevState.current = currentState;
     }
   }, [isSystemEnabled, systemSettings, wallet, loading]);

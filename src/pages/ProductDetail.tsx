@@ -24,7 +24,8 @@ import {
   Shield, 
   Star,
   Check,
-  X
+  X,
+  MessageCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
@@ -107,11 +108,49 @@ const ProductDetail = () => {
         });
       } catch (error) {
         console.log('Error sharing:', error);
+        // Fallback to clipboard if share fails
+        copyToClipboard(productUrl);
       }
     } else {
       // Fallback: copy to clipboard
-      navigator.clipboard.writeText(productUrl);
-      toast.success('Product link copied to clipboard!');
+      copyToClipboard(productUrl);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        toast.success('Product link copied to clipboard!');
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          const successful = document.execCommand('copy');
+          if (successful) {
+            toast.success('Product link copied to clipboard!');
+          } else {
+            toast.error('Failed to copy link. Please copy manually.');
+          }
+        } catch (err) {
+          console.error('Fallback copy failed:', err);
+          toast.error('Copy not supported. Please copy the URL manually.');
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
+    } catch (error) {
+      console.error('Copy to clipboard failed:', error);
+      toast.error('Failed to copy link. Please copy manually.');
     }
   };
 

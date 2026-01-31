@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Zap, MessageCircle, User, LogIn, Search, ShoppingCart, Heart, Package, UserCircle } from 'lucide-react';
+import { Menu, X, Zap, LogIn, Search, ShoppingCart, Heart, Package, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useWebsiteSettings } from '@/hooks/useWebsiteSettings';
@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useAffiliateStatus } from '@/hooks/useAffiliateStatus';
+import { useRepairRequests } from '@/hooks/useRepairRequests';
 import UserProfile from '@/components/auth/UserProfile';
 import UserMenuMobile from '@/components/auth/UserMenuMobile';
 
@@ -23,14 +24,21 @@ const navLinks = [
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
-  const { settings, getFloatingButtonLink } = useWebsiteSettings();
+  const { settings } = useWebsiteSettings();
   const { user, loading } = useAuth();
   const { getTotalItems: getCartCount } = useCart();
   const { getTotalItems: getWishlistCount } = useWishlist();
   const { isAffiliate, affiliateData } = useAffiliateStatus();
+  const { hasRepairRequests } = useRepairRequests();
 
   const cartCount = getCartCount();
   const wishlistCount = getWishlistCount();
+
+  // Create dynamic nav links based on user's repair requests
+  const dynamicNavLinks = [
+    ...navLinks,
+    ...(hasRepairRequests ? [{ href: '/mobile-repair', label: 'Mobile Repair' }] : [])
+  ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-white backdrop-blur supports-[backdrop-filter]:bg-white/95">
@@ -113,7 +121,7 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
+            {dynamicNavLinks.map((link) => (
               <Link
                 key={link.href}
                 to={link.href}
@@ -215,7 +223,7 @@ export function Header() {
                 </Link>
               )}
 
-              {navLinks.map((link) => (
+              {dynamicNavLinks.map((link) => (
                 <Link
                   key={link.href}
                   to={link.href}

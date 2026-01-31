@@ -29,6 +29,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AffiliateLogin from "./pages/AffiliateLogin";
 import AffiliateDashboard from "./pages/AffiliateDashboard";
 import AffiliateProfile from "./pages/AffiliateProfile";
+import MobileRepairService from "./pages/MobileRepairService";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -64,6 +65,7 @@ const App = () => (
                   <Route path="/offers" element={<Offers />} />
                   <Route path="/services" element={<Services />} />
                   <Route path="/contact" element={<Contact />} />
+                  <Route path="/mobile-repair" element={<MobileRepairService />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route path="/affiliate/login" element={<AffiliateLogin />} />
