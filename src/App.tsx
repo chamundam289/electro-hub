@@ -29,6 +29,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AffiliateLogin from "./pages/AffiliateLogin";
 import AffiliateDashboard from "./pages/AffiliateDashboard";
 import AffiliateProfile from "./pages/AffiliateProfile";
+import InstagramLogin from "./pages/InstagramLogin";
+import InstagramDashboard from "./pages/InstagramDashboard";
 import MobileRepairService from "./pages/MobileRepairService";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -71,6 +73,8 @@ const App = () => (
                   <Route path="/affiliate/login" element={<AffiliateLogin />} />
                   <Route path="/affiliate/dashboard" element={<AffiliateDashboard />} />
                   <Route path="/affiliate/profile" element={<AffiliateProfile />} />
+                  <Route path="/instagram-login" element={<InstagramLogin />} />
+                  <Route path="/instagram-dashboard" element={<InstagramDashboard />} />
                   <Route path="/admin/login" element={<AdminLogin />} />
                   <Route path="/admin/setup" element={<AdminSetup />} />
                   <Route path="/admin" element={
