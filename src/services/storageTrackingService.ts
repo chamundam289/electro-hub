@@ -117,6 +117,10 @@ export const UPLOAD_SOURCES = {
   ADMIN_DOCUMENTS: 'admin_documents',
   SYSTEM_BACKUPS: 'system_backups',
   
+  // Employee Management
+  EMPLOYEE_PROFILES: 'employee_profiles',
+  EMPLOYEE_DOCUMENTS: 'employee_documents',
+  
   // USER-SIDE UPLOAD SOURCES
   // Product Orders (User Side)
   USER_PRODUCT_ORDERS: 'user_product_orders',
@@ -275,6 +279,18 @@ export const DATA_OPERATION_SOURCES = {
   ADMIN_ANALYTICS_LOG: 'admin_analytics_log',
   ADMIN_EXPORT_DATA: 'admin_export_data',
   
+  // Admin Employee Management
+  ADMIN_EMPLOYEE_CREATE: 'admin_employee_create',
+  ADMIN_EMPLOYEE_UPDATE: 'admin_employee_update',
+  ADMIN_EMPLOYEE_DELETE: 'admin_employee_delete',
+  ADMIN_EMPLOYEE_STATUS: 'admin_employee_status',
+  ADMIN_ATTENDANCE_MARK: 'admin_attendance_mark',
+  ADMIN_ATTENDANCE_UPDATE: 'admin_attendance_update',
+  ADMIN_ATTENDANCE_BULK: 'admin_attendance_bulk',
+  ADMIN_SALARY_GENERATE: 'admin_salary_generate',
+  ADMIN_SALARY_BULK_GENERATE: 'admin_salary_bulk_generate',
+  ADMIN_SALARY_PAYMENT: 'admin_salary_payment',
+  
   // User-Side Operations
   USER_ORDER_CREATE: 'user_order_create',
   USER_ORDER_UPDATE: 'user_order_update',
@@ -327,6 +343,8 @@ export const BUCKET_MAPPING = {
   [UPLOAD_SOURCES.RECHARGE_RECEIPTS]: 'recharge-documents',
   [UPLOAD_SOURCES.ADMIN_DOCUMENTS]: 'admin-documents',
   [UPLOAD_SOURCES.SYSTEM_BACKUPS]: 'system-backups',
+  [UPLOAD_SOURCES.EMPLOYEE_PROFILES]: 'employee-profiles',
+  [UPLOAD_SOURCES.EMPLOYEE_DOCUMENTS]: 'employee-documents',
   
   // USER-SIDE BUCKET MAPPINGS
   // User Images
@@ -840,6 +858,22 @@ class StorageTrackingService {
         // Coupon usage: coupon info, user, order reference
         return 256; // 0.25KB per usage
         
+      case 'employees':
+        // Employee: personal info, role, salary details
+        const baseEmployeeSize = 1024; // 1KB base
+        const addressSize = (recordData?.address?.length || 0) * 2;
+        return baseEmployeeSize + addressSize;
+        
+      case 'employee_attendance':
+        // Attendance record: employee, date, status, times
+        return 256; // 0.25KB per attendance record
+        
+      case 'employee_salaries':
+        // Salary record: employee, calculations, payment details
+        const baseSalarySize = 512; // 0.5KB base
+        const paymentNotesSize = (recordData?.payment_notes?.length || 0) * 2;
+        return baseSalarySize + paymentNotesSize;
+        
       default:
         // Default estimate for unknown tables
         return 512; // 0.5KB default
@@ -879,6 +913,16 @@ class StorageTrackingService {
       [DATA_OPERATION_SOURCES.ADMIN_INSTAGRAM_MEDIA_CREATE]: 'Instagram Media Creation',
       [DATA_OPERATION_SOURCES.ADMIN_AFFILIATE_USER_CREATE]: 'Affiliate User Creation',
       [DATA_OPERATION_SOURCES.ADMIN_AFFILIATE_TRANSACTION]: 'Affiliate Transaction',
+      [DATA_OPERATION_SOURCES.ADMIN_EMPLOYEE_CREATE]: 'Employee Creation',
+      [DATA_OPERATION_SOURCES.ADMIN_EMPLOYEE_UPDATE]: 'Employee Update',
+      [DATA_OPERATION_SOURCES.ADMIN_EMPLOYEE_DELETE]: 'Employee Deletion',
+      [DATA_OPERATION_SOURCES.ADMIN_EMPLOYEE_STATUS]: 'Employee Status Change',
+      [DATA_OPERATION_SOURCES.ADMIN_ATTENDANCE_MARK]: 'Attendance Marking',
+      [DATA_OPERATION_SOURCES.ADMIN_ATTENDANCE_UPDATE]: 'Attendance Update',
+      [DATA_OPERATION_SOURCES.ADMIN_ATTENDANCE_BULK]: 'Bulk Attendance Operation',
+      [DATA_OPERATION_SOURCES.ADMIN_SALARY_GENERATE]: 'Salary Generation',
+      [DATA_OPERATION_SOURCES.ADMIN_SALARY_BULK_GENERATE]: 'Bulk Salary Generation',
+      [DATA_OPERATION_SOURCES.ADMIN_SALARY_PAYMENT]: 'Salary Payment Processing',
       [DATA_OPERATION_SOURCES.USER_ORDER_CREATE]: 'User Order Creation',
       [DATA_OPERATION_SOURCES.USER_PROFILE_UPDATE]: 'User Profile Update',
       [DATA_OPERATION_SOURCES.USER_REVIEW_CREATE]: 'User Review Creation',
@@ -926,6 +970,8 @@ class StorageTrackingService {
       [UPLOAD_SOURCES.RECHARGE_RECEIPTS]: 'Recharge Receipts',
       [UPLOAD_SOURCES.ADMIN_DOCUMENTS]: 'Admin Documents',
       [UPLOAD_SOURCES.SYSTEM_BACKUPS]: 'System Backups',
+      [UPLOAD_SOURCES.EMPLOYEE_PROFILES]: 'Employee Profile Images',
+      [UPLOAD_SOURCES.EMPLOYEE_DOCUMENTS]: 'Employee Documents',
       
       // USER-SIDE LABELS
       [UPLOAD_SOURCES.USER_PRODUCT_ORDERS]: 'Product Order Documents',
@@ -965,3 +1011,14 @@ class StorageTrackingService {
 
 // Export singleton instance
 export const storageTrackingService = new StorageTrackingService();
+
+// Export convenience functions for easier importing
+export const trackUpload = (data: StorageTrackingData) => storageTrackingService.trackUpload(data);
+export const trackDataOperation = (data: DataTrackingData) => storageTrackingService.trackDataOperation(data);
+export const trackDeletion = (fileName: string, bucketName: string) => storageTrackingService.trackDeletion(fileName, bucketName);
+export const getStorageUsage = () => storageTrackingService.getStorageUsage();
+export const getStorageSummary = () => storageTrackingService.getStorageSummary();
+export const getBucketName = (uploadSource: string) => storageTrackingService.getBucketName(uploadSource);
+export const generateFileName = (originalName: string, uploadSource: string) => storageTrackingService.generateFileName(originalName, uploadSource);
+export const getSourceLabel = (uploadSource: string) => storageTrackingService.getSourceLabel(uploadSource);
+export const getDataOperationLabel = (operationSource: string) => storageTrackingService.getDataOperationLabel(operationSource);

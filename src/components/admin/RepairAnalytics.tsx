@@ -93,21 +93,21 @@ export const RepairAnalytics = () => {
       const cancelledRequests = requests?.filter(r => r.status === 'cancelled').length || 0;
 
       // Calculate average rating
-      const ratingsData = requests?.flatMap(r => r.repair_feedback?.map(f => f.rating) || []) || [];
+      const ratingsData = requests?.flatMap(r => (r.repair_feedback || []).map(f => f.rating) || []) || [];
       const avgRating = ratingsData.length > 0 
         ? ratingsData.reduce((sum, rating) => sum + rating, 0) / ratingsData.length 
         : 0;
 
       // Calculate total revenue
       const totalRevenue = requests?.reduce((sum, r) => {
-        const quotation = r.repair_quotations?.[0];
+        const quotation = (r.repair_quotations || [])[0];
         return sum + (quotation?.total_amount || 0);
       }, 0) || 0;
 
       // Issue breakdown
       const issueBreakdown: Record<string, number> = {};
       requests?.forEach(r => {
-        r.issue_types?.forEach((issue: string) => {
+        (r.issue_types || []).forEach((issue: string) => {
           issueBreakdown[issue] = (issueBreakdown[issue] || 0) + 1;
         });
       });
@@ -140,7 +140,7 @@ export const RepairAnalytics = () => {
             ['repair_completed', 'delivered'].includes(r.status)
           ).length,
           revenue: dayRequests.reduce((sum, r) => {
-            const quotation = r.repair_quotations?.[0];
+            const quotation = (r.repair_quotations || [])[0];
             return sum + (quotation?.total_amount || 0);
           }, 0)
         });
@@ -367,7 +367,7 @@ export const RepairAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {Object.entries(analytics.issueBreakdown)
+              {analytics.issueBreakdown && Object.entries(analytics.issueBreakdown)
                 .sort(([,a], [,b]) => b - a)
                 .slice(0, 6)
                 .map(([issue, count]) => (
@@ -380,7 +380,7 @@ export const RepairAnalytics = () => {
                       <div 
                         className="bg-blue-600 h-2 rounded-full" 
                         style={{ 
-                          width: `${(count / analytics.totalRequests) * 100}%` 
+                          width: `${analytics.totalRequests > 0 ? (count / analytics.totalRequests) * 100 : 0}%` 
                         }}
                       ></div>
                     </div>
@@ -388,6 +388,9 @@ export const RepairAnalytics = () => {
                   </div>
                 </div>
               ))}
+              {(!analytics.issueBreakdown || Object.keys(analytics.issueBreakdown).length === 0) && (
+                <p className="text-gray-500 text-center py-4">No issue data available</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -402,7 +405,7 @@ export const RepairAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {Object.entries(analytics.serviceTypeBreakdown).map(([type, count]) => (
+              {analytics.serviceTypeBreakdown && Object.entries(analytics.serviceTypeBreakdown).map(([type, count]) => (
                 <div key={type} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${
@@ -415,11 +418,14 @@ export const RepairAnalytics = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{count}</span>
                     <span className="text-xs text-gray-500">
-                      ({((count / analytics.totalRequests) * 100).toFixed(1)}%)
+                      ({analytics.totalRequests > 0 ? ((count / analytics.totalRequests) * 100).toFixed(1) : '0'}%)
                     </span>
                   </div>
                 </div>
               ))}
+              {(!analytics.serviceTypeBreakdown || Object.keys(analytics.serviceTypeBreakdown).length === 0) && (
+                <p className="text-gray-500 text-center py-4">No service type data available</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -455,14 +461,14 @@ export const RepairAnalytics = () => {
                       </td>
                       <td className="py-3">
                         <div className="flex flex-wrap gap-1">
-                          {tech.specializations.slice(0, 2).map((spec) => (
+                          {(tech.specializations || []).slice(0, 2).map((spec) => (
                             <Badge key={spec} variant="secondary" className="text-xs">
                               {spec.replace('_', ' ')}
                             </Badge>
                           ))}
-                          {tech.specializations.length > 2 && (
+                          {(tech.specializations || []).length > 2 && (
                             <Badge variant="secondary" className="text-xs">
-                              +{tech.specializations.length - 2}
+                              +{(tech.specializations || []).length - 2}
                             </Badge>
                           )}
                         </div>
@@ -514,29 +520,33 @@ export const RepairAnalytics = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {analytics.dailyTrends.map((day, index) => (
-              <div key={index} className="flex items-center justify-between py-2">
-                <span className="text-sm font-medium w-16">{day.date}</span>
-                <div className="flex-1 mx-4">
-                  <div className="flex items-center gap-2 text-xs text-gray-600">
-                    <span>Requests: {day.requests}</span>
-                    <span>Completed: {day.completed}</span>
-                    <span>Revenue: ₹{day.revenue.toLocaleString('en-IN')}</span>
+            {analytics.dailyTrends && analytics.dailyTrends.length > 0 ? (
+              analytics.dailyTrends.map((day, index) => (
+                <div key={index} className="flex items-center justify-between py-2">
+                  <span className="text-sm font-medium w-16">{day.date}</span>
+                  <div className="flex-1 mx-4">
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <span>Requests: {day.requests}</span>
+                      <span>Completed: {day.completed}</span>
+                      <span>Revenue: ₹{day.revenue.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ 
+                          width: `${Math.max((day.requests / Math.max(...analytics.dailyTrends.map(d => d.requests), 1)) * 100, 5)}%` 
+                        }}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
-                      style={{ 
-                        width: `${Math.max((day.requests / Math.max(...analytics.dailyTrends.map(d => d.requests))) * 100, 5)}%` 
-                      }}
-                    ></div>
-                  </div>
+                  <span className="text-sm text-gray-500 w-12 text-right">
+                    {day.requests > 0 ? `${((day.completed / day.requests) * 100).toFixed(0)}%` : '0%'}
+                  </span>
                 </div>
-                <span className="text-sm text-gray-500 w-12 text-right">
-                  {day.requests > 0 ? `${((day.completed / day.requests) * 100).toFixed(0)}%` : '0%'}
-                </span>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-4">No daily trend data available</p>
+            )}
           </div>
         </CardContent>
       </Card>

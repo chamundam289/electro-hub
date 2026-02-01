@@ -28,7 +28,8 @@ import {
   Share2,
   Gift,
   Instagram,
-  Database
+  Database,
+  Clock
 } from 'lucide-react';
 
 // Import admin components
@@ -58,7 +59,9 @@ import AffiliateManagement from '@/components/admin/AffiliateManagement';
 import LoyaltyManagement from '@/components/admin/LoyaltyManagement';
 import CouponManagement from '@/components/admin/CouponManagement';
 import CouponDistribution from '@/components/admin/CouponDistribution';
-import InstagramMarketing from '@/components/admin/InstagramMarketing';
+import EmployeeManagement from '@/components/admin/EmployeeManagement';
+import AttendanceManagement from '@/components/admin/AttendanceManagement';
+import SalaryManagement from '@/components/admin/SalaryManagement';
 
 export default function AdminDashboard() {
   const { isAdmin, isLoading, user } = useAuth();
@@ -135,6 +138,11 @@ export default function AdminDashboard() {
     { id: 'suppliers', label: 'Suppliers', icon: UserPlus },
     { id: 'leads', label: 'Lead Management', icon: TrendingUp },
     
+    // Employee Management
+    { id: 'employees', label: 'Employee Management', icon: Users },
+    { id: 'attendance', label: 'Attendance', icon: Clock },
+    { id: 'salaries', label: 'Salary Management', icon: DollarSign },
+    
     // Reports & Analytics
     { id: 'reports', label: 'Advanced Reports', icon: PieChart },
     
@@ -158,7 +166,7 @@ export default function AdminDashboard() {
           <div className="py-2">
             {menuItems.map((item, index) => {
               const Icon = item.icon;
-              const showSeparator = [1, 3, 7, 9, 11, 15, 16].includes(index); // Add separators after logical groups
+              const showSeparator = [1, 3, 7, 9, 11, 15, 16, 19].includes(index); // Add separators after logical groups
               
               return (
                 <div key={item.id}>
@@ -218,6 +226,9 @@ export default function AdminDashboard() {
               {activeTab === 'mobile-repair' && <UnifiedMobileRepair />}
               {activeTab === 'repair-analytics' && <RepairAnalytics />}
               {activeTab === 'leads' && <LeadManagement />}
+              {activeTab === 'employees' && <EmployeeManagement />}
+              {activeTab === 'attendance' && <AttendanceManagement />}
+              {activeTab === 'salaries' && <SalaryManagement />}
               {activeTab === 'reports' && <AdvancedReports />}
               {activeTab === 'website-settings' && <WebsiteSettings />}
               {activeTab === 'database' && <DatabaseManagement />}
