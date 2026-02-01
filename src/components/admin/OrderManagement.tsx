@@ -10,6 +10,7 @@ import { DataPagination } from '@/components/ui/data-pagination';
 import { TableShimmer, StatsCardShimmer } from '@/components/ui/Shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
+import { storageTrackingService, DATA_OPERATION_SOURCES } from '@/services/storageTrackingService';
 import { FileText, Eye, Edit, Printer, Search, Mail, MessageCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -109,12 +110,30 @@ export default function OrderManagement() {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
+      const order = orders.find(o => o.id === orderId);
+      
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId);
 
       if (error) throw error;
+      
+      // Track order status update
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'update',
+        table_name: 'orders',
+        record_id: orderId,
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_ORDER_UPDATE,
+        metadata: {
+          order_number: order?.order_number || 'Unknown',
+          customer_name: order?.customer_name || 'Unknown',
+          old_status: order?.status || 'Unknown',
+          new_status: newStatus,
+          operation: 'status_update'
+        }
+      });
+      
       toast.success('Order status updated successfully');
       fetchOrders();
     } catch (error) {
@@ -125,12 +144,30 @@ export default function OrderManagement() {
 
   const updatePaymentStatus = async (orderId: string, newPaymentStatus: string) => {
     try {
+      const order = orders.find(o => o.id === orderId);
+      
       const { error } = await supabase
         .from('orders')
         .update({ payment_status: newPaymentStatus })
         .eq('id', orderId);
 
       if (error) throw error;
+      
+      // Track payment status update
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'update',
+        table_name: 'orders',
+        record_id: orderId,
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_ORDER_UPDATE,
+        metadata: {
+          order_number: order?.order_number || 'Unknown',
+          customer_name: order?.customer_name || 'Unknown',
+          old_payment_status: order?.payment_status || 'Unknown',
+          new_payment_status: newPaymentStatus,
+          operation: 'payment_status_update'
+        }
+      });
+      
       toast.success('Payment status updated successfully');
       fetchOrders();
     } catch (error) {

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { storageTrackingService, DATA_OPERATION_SOURCES } from '@/services/storageTrackingService';
 import { 
   Instagram, 
   Coins, 
@@ -191,18 +192,54 @@ export default function InstagramDashboard() {
 
       if (storyError) throw storyError;
 
+      // Track Instagram story creation
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'create',
+        table_name: 'instagram_stories',
+        record_id: storyData.id,
+        operation_source: DATA_OPERATION_SOURCES.USER_INSTAGRAM_STORY,
+        operated_by: user.id,
+        metadata: {
+          story_id: storyId,
+          instagram_username: user.instagram_username,
+          full_name: user.full_name,
+          campaign_id: campaignId,
+          story_duration: '24_hours',
+          user_type: 'instagram_user'
+        }
+      });
+
       // Create timer record
-      await (supabase as any)
+      const { data: timerData, error: timerError } = await (supabase as any)
         .from('instagram_story_timers')
         .insert([{
           story_id: storyData.id,
           instagram_user_id: user.id,
           timer_expires_at: expiresAt.toISOString(),
           timer_status: 'running'
-        }]);
+        }])
+        .select()
+        .single();
+
+      if (!timerError && timerData) {
+        // Track timer creation
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'create',
+          table_name: 'instagram_story_timers',
+          record_id: timerData.id,
+          operation_source: DATA_OPERATION_SOURCES.USER_INSTAGRAM_STORY,
+          operated_by: user.id,
+          metadata: {
+            story_id: storyId,
+            instagram_username: user.instagram_username,
+            timer_duration: '24_hours',
+            timer_status: 'running'
+          }
+        });
+      }
 
       // Create notification for admin
-      await (supabase as any)
+      const { data: notificationData, error: notificationError } = await (supabase as any)
         .from('instagram_notifications')
         .insert([{
           notification_type: 'story_started',
@@ -210,7 +247,26 @@ export default function InstagramDashboard() {
           title: 'New Instagram Story Started',
           message: `${user.full_name} (@${user.instagram_username}) has started a new story: ${storyId}`,
           story_id: storyData.id
-        }]);
+        }])
+        .select()
+        .single();
+
+      if (!notificationError && notificationData) {
+        // Track notification creation
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'create',
+          table_name: 'instagram_notifications',
+          record_id: notificationData.id,
+          operation_source: DATA_OPERATION_SOURCES.USER_INSTAGRAM_STORY,
+          operated_by: user.id,
+          metadata: {
+            notification_type: 'story_started',
+            story_id: storyId,
+            instagram_username: user.instagram_username,
+            recipient_type: 'admin'
+          }
+        });
+      }
 
       toast.success('Story timer started! Keep your story active for 24 hours.');
       fetchUserData(user.id);

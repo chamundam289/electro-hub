@@ -27,7 +27,8 @@ import {
   Coins,
   Share2,
   Gift,
-  Instagram
+  Instagram,
+  Database
 } from 'lucide-react';
 
 // Import admin components
@@ -47,6 +48,7 @@ import PaymentManagement from '@/components/admin/PaymentManagement';
 import LeadManagement from '@/components/admin/LeadManagement';
 import SupplierManagement from '@/components/admin/SupplierManagement';
 import WebsiteSettings from '@/components/admin/WebsiteSettings';
+import DatabaseManagement from '@/pages/admin/DatabaseManagement';
 import AdvancedReports from '@/components/admin/AdvancedReports';
 import AdminTest from '@/components/admin/AdminTest';
 import MobileRecharge from '@/components/admin/MobileRecharge';
@@ -138,6 +140,7 @@ export default function AdminDashboard() {
     
     // System Management
     { id: 'website-settings', label: 'Website Settings', icon: Settings },
+    { id: 'database', label: 'Database', icon: Database },
     { id: 'test', label: 'System Test', icon: TestTube },
   ];
 
@@ -217,6 +220,7 @@ export default function AdminDashboard() {
               {activeTab === 'leads' && <LeadManagement />}
               {activeTab === 'reports' && <AdvancedReports />}
               {activeTab === 'website-settings' && <WebsiteSettings />}
+              {activeTab === 'database' && <DatabaseManagement />}
               {activeTab === 'test' && <AdminTest />}
             </ErrorBoundary>
           </div>

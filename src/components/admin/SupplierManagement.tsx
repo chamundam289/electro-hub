@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { TableShimmer, StatsCardShimmer } from '@/components/ui/Shimmer';
 import { supabase } from '@/integrations/supabase/client';
+import { storageTrackingService, DATA_OPERATION_SOURCES } from '@/services/storageTrackingService';
 import { Plus, Edit, Trash2, Search, Building, Phone, Mail, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -93,13 +94,46 @@ export default function SupplierManagement() {
           .eq('id', editingSupplier.id);
 
         if (error) throw error;
+        
+        // Track supplier update
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'update',
+          table_name: 'suppliers',
+          record_id: editingSupplier.id,
+          operation_source: DATA_OPERATION_SOURCES.ADMIN_SUPPLIER_UPDATE,
+          metadata: {
+            supplier_name: formData.name,
+            contact_person: formData.contact_person,
+            credit_limit: formData.credit_limit,
+            credit_days: formData.credit_days
+          }
+        });
+        
         toast.success('Supplier updated successfully');
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('suppliers')
-          .insert([formData]);
+          .insert([formData])
+          .select()
+          .single();
 
         if (error) throw error;
+        
+        // Track supplier creation
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'create',
+          table_name: 'suppliers',
+          record_id: data.id,
+          operation_source: DATA_OPERATION_SOURCES.ADMIN_SUPPLIER_CREATE,
+          metadata: {
+            supplier_name: formData.name,
+            contact_person: formData.contact_person,
+            credit_limit: formData.credit_limit,
+            credit_days: formData.credit_days,
+            has_gst: !!formData.gst_number
+          }
+        });
+        
         toast.success('Supplier created successfully');
       }
 
@@ -137,12 +171,27 @@ export default function SupplierManagement() {
     if (!confirm('Are you sure you want to delete this supplier?')) return;
 
     try {
+      const supplier = suppliers.find(s => s.id === id);
+      
       const { error } = await supabase
         .from('suppliers')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+      
+      // Track supplier deletion
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'delete',
+        table_name: 'suppliers',
+        record_id: id,
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_SUPPLIER_DELETE,
+        metadata: {
+          supplier_name: supplier?.name || 'Unknown',
+          contact_person: supplier?.contact_person || 'Unknown'
+        }
+      });
+      
       toast.success('Supplier deleted successfully');
       fetchSuppliers();
     } catch (error) {

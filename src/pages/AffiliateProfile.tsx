@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ImageUpload } from '@/components/ui/ImageUpload';
+import { storageTrackingService, DATA_OPERATION_SOURCES, UPLOAD_SOURCES } from '@/services/storageTrackingService';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
@@ -127,6 +128,22 @@ export default function AffiliateProfile() {
           return;
         }
 
+        // Track affiliate profile creation
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'create',
+          table_name: 'affiliate_profiles',
+          record_id: newProfile.id,
+          operation_source: DATA_OPERATION_SOURCES.USER_PROFILE_UPDATE,
+          operated_by: user.id,
+          metadata: {
+            full_name: newProfile.full_name,
+            country: newProfile.country,
+            user_email: user.email,
+            profile_type: 'affiliate',
+            creation_method: 'direct_insert'
+          }
+        });
+
         if (newProfile) {
           setProfile(newProfile);
           populateForm(newProfile);
@@ -186,6 +203,25 @@ export default function AffiliateProfile() {
         .eq('user_id', user.id);
 
       if (error) throw error;
+
+      // Track affiliate profile update
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'update',
+        table_name: 'affiliate_profiles',
+        record_id: profile.id,
+        operation_source: DATA_OPERATION_SOURCES.USER_PROFILE_UPDATE,
+        operated_by: user.id,
+        metadata: {
+          full_name: formData.full_name,
+          mobile_number: formData.mobile_number,
+          city: formData.city,
+          state: formData.state,
+          country: formData.country,
+          has_profile_image: !!profileImage,
+          user_email: user.email,
+          profile_type: 'affiliate'
+        }
+      });
 
       toast.success('Profile updated successfully!');
       await fetchProfile(); // Refresh to get updated completion status
@@ -281,9 +317,15 @@ export default function AffiliateProfile() {
                 <div className="flex-1">
                   <Label>Profile Image</Label>
                   <ImageUpload
-                    value={profileImage}
-                    onChange={setProfileImage}
+                    onImageUploaded={setProfileImage}
+                    currentImage={profileImage}
                     folder="affiliate-profiles"
+                    uploadSource={UPLOAD_SOURCES.USER_AFFILIATE_BANNERS}
+                    metadata={{
+                      module: 'affiliate_profile',
+                      affiliate_id: user?.id,
+                      profile_type: 'avatar'
+                    }}
                     maxSize={2}
                     allowedTypes={['image/jpeg', 'image/jpg', 'image/png']}
                   />

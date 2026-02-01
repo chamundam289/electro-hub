@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { TableShimmer, StatsCardShimmer } from '@/components/ui/Shimmer';
 import { supabase } from '@/integrations/supabase/client';
+import { storageTrackingService, DATA_OPERATION_SOURCES } from '@/services/storageTrackingService';
 import { Plus, Edit, Trash2, Search, Phone, Mail, Building, Calendar, User, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -125,13 +126,53 @@ export default function LeadManagement() {
           .eq('id', editingLead.id);
 
         if (error) throw error;
+        
+        // Track lead update
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'update',
+          table_name: 'leads',
+          record_id: editingLead.id,
+          operation_source: DATA_OPERATION_SOURCES.ADMIN_LEAD_UPDATE,
+          metadata: {
+            lead_name: formData.name,
+            lead_number: editingLead.lead_number,
+            company: formData.company,
+            source: formData.source,
+            status: formData.status,
+            priority: formData.priority,
+            estimated_value: formData.estimated_value
+          }
+        });
+        
         toast.success('Lead updated successfully');
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('leads')
-          .insert([leadData]);
+          .insert([leadData])
+          .select()
+          .single();
 
         if (error) throw error;
+        
+        // Track lead creation
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'create',
+          table_name: 'leads',
+          record_id: data.id,
+          operation_source: DATA_OPERATION_SOURCES.ADMIN_LEAD_CREATE,
+          metadata: {
+            lead_name: formData.name,
+            lead_number: leadData.lead_number,
+            company: formData.company,
+            source: formData.source,
+            status: formData.status,
+            priority: formData.priority,
+            estimated_value: formData.estimated_value,
+            has_email: !!formData.email,
+            has_phone: !!formData.phone
+          }
+        });
+        
         toast.success('Lead created successfully');
       }
 
@@ -154,14 +195,31 @@ export default function LeadManagement() {
     }
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('lead_activities')
         .insert([{
           lead_id: selectedLead.id,
           ...activityData
-        }]);
+        }])
+        .select()
+        .single();
 
       if (error) throw error;
+      
+      // Track lead activity creation
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'create',
+        table_name: 'lead_activities',
+        record_id: data.id,
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_LEAD_FOLLOWUP_CREATE,
+        metadata: {
+          lead_name: selectedLead.name,
+          lead_number: selectedLead.lead_number,
+          activity_type: activityData.activity_type,
+          activity_title: activityData.title,
+          activity_date: activityData.activity_date
+        }
+      });
       
       toast.success('Activity added successfully');
       setActivityData({
@@ -200,12 +258,29 @@ export default function LeadManagement() {
     if (!confirm('Are you sure you want to delete this lead?')) return;
 
     try {
+      const lead = leads.find(l => l.id === id);
+      
       const { error } = await supabase
         .from('leads')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+      
+      // Track lead deletion
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'delete',
+        table_name: 'leads',
+        record_id: id,
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_LEAD_DELETE,
+        metadata: {
+          lead_name: lead?.name || 'Unknown',
+          lead_number: lead?.lead_number || 'Unknown',
+          company: lead?.company || 'Unknown',
+          estimated_value: lead?.estimated_value || 0
+        }
+      });
+      
       toast.success('Lead deleted successfully');
       fetchLeads();
     } catch (error) {

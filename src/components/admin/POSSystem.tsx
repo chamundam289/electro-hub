@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { storageTrackingService, DATA_OPERATION_SOURCES } from '@/services/storageTrackingService';
 
 interface Product {
   id: string;
@@ -547,6 +548,22 @@ Thank you for choosing ElectroStore! 🙏
         return;
       }
       
+      // Track customer creation
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'create',
+        table_name: 'customers',
+        record_id: data.id,
+        data_size_bytes: storageTrackingService.estimateDataSize('customers', data),
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_CUSTOMER_CREATE,
+        operated_by: undefined,
+        metadata: {
+          customer_name: data.name,
+          customer_type: data.customer_type,
+          phone: data.phone,
+          email: data.email
+        }
+      });
+      
       setCustomers([...customers, data]);
       setSelectedCustomer(data.id);
       setNewCustomer({ name: '', phone: '', email: '', customer_type: 'retail' });
@@ -603,6 +620,23 @@ Thank you for choosing ElectroStore! 🙏
 
       if (orderError) throw orderError;
 
+      // Track order creation in storage management
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'create',
+        table_name: 'orders',
+        record_id: order.id,
+        data_size_bytes: storageTrackingService.estimateDataSize('orders', order),
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_POS_ORDER_CREATE,
+        operated_by: undefined, // Could be set to admin user ID if available
+        metadata: {
+          customer_name: order.customer_name,
+          total_amount: order.total_amount,
+          payment_method: order.payment_method,
+          order_source: 'pos',
+          items_count: cart.length
+        }
+      });
+
       // Create order items
       const orderItems = cart.map(item => ({
         order_id: order.id,
@@ -623,6 +657,24 @@ Thank you for choosing ElectroStore! 🙏
 
       if (itemsError) throw itemsError;
 
+      // Track order items creation
+      for (const item of orderItems) {
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'create',
+          table_name: 'order_items',
+          record_id: `${order.id}-${item.product_id}`,
+          data_size_bytes: storageTrackingService.estimateDataSize('order_items', item),
+          operation_source: DATA_OPERATION_SOURCES.ADMIN_POS_ORDER_ITEMS,
+          operated_by: undefined,
+          metadata: {
+            order_id: order.id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            line_total: item.line_total
+          }
+        });
+      }
+
       // Update inventory
       for (const item of cart) {
         const { data: product } = await supabase
@@ -641,19 +693,38 @@ Thank you for choosing ElectroStore! 🙏
 
           // Create inventory transaction
           try {
+            const inventoryTransaction = {
+              product_id: item.id,
+              transaction_type: 'sale',
+              reference_type: 'order',
+              reference_id: order.id,
+              quantity_change: -item.quantity,
+              quantity_before: product.stock_quantity,
+              quantity_after: newQuantity,
+              unit_cost: item.price,
+              notes: `Sale - Invoice: ${order.invoice_number || order.id.slice(0, 8)}`
+            };
+            
             await supabase
               .from('inventory_transactions')
-              .insert([{
+              .insert([inventoryTransaction]);
+              
+            // Track inventory transaction
+            await storageTrackingService.trackDataOperation({
+              operation_type: 'create',
+              table_name: 'inventory_transactions',
+              record_id: `${order.id}-${item.id}-inv`,
+              data_size_bytes: storageTrackingService.estimateDataSize('inventory_transactions', inventoryTransaction),
+              operation_source: DATA_OPERATION_SOURCES.ADMIN_INVENTORY_TRANSACTION,
+              operated_by: undefined,
+              metadata: {
                 product_id: item.id,
-                transaction_type: 'sale',
-                reference_type: 'order',
-                reference_id: order.id,
+                product_name: item.name,
                 quantity_change: -item.quantity,
-                quantity_before: product.stock_quantity,
-                quantity_after: newQuantity,
-                unit_cost: item.price,
-                notes: `Sale - Invoice: ${order.invoice_number || order.id.slice(0, 8)}`
-              }]);
+                transaction_type: 'sale',
+                order_id: order.id
+              }
+            });
           } catch (invError) {
             console.log('Inventory transactions table not available yet:', invError);
           }
@@ -746,6 +817,23 @@ Thank you for choosing ElectroStore! 🙏
           return;
         }
 
+        // Track mobile recharge creation
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'create',
+          table_name: 'mobile_recharges',
+          record_id: data.id || `recharge-${Date.now()}`,
+          data_size_bytes: storageTrackingService.estimateDataSize('mobile_recharges', rechargeData),
+          operation_source: DATA_OPERATION_SOURCES.ADMIN_MOBILE_RECHARGE_CREATE,
+          operated_by: undefined,
+          metadata: {
+            mobile_number: rechargeData.mobile_number,
+            operator: rechargeData.operator,
+            recharge_amount: rechargeData.recharge_amount,
+            plan_type: rechargeData.plan_type,
+            payment_method: rechargeData.payment_method
+          }
+        });
+
         // Send automatic SMS invoice to customer
         const smsSuccess = sendRechargeInvoiceViaSMS(data, rechargeData.mobile_number);
         
@@ -832,6 +920,24 @@ Thank you for choosing ElectroStore! 🙏
       }
 
       console.log('Successfully saved repair data:', data);
+      
+      // Track mobile repair creation
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'create',
+        table_name: 'mobile_repairs',
+        record_id: data.id || `repair-${Date.now()}`,
+        data_size_bytes: storageTrackingService.estimateDataSize('mobile_repairs', repairData),
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_MOBILE_REPAIR_CREATE,
+        operated_by: undefined,
+        metadata: {
+          customer_name: repairData.customer_name,
+          device_brand: repairData.device_brand,
+          device_model: repairData.device_model,
+          repair_type: repairData.repair_type,
+          estimated_cost: repairData.estimated_cost,
+          advance_payment: repairData.advance_payment
+        }
+      });
       
       // Send automatic SMS invoice to customer
       const smsSuccess = sendRepairInvoiceViaSMS(data, repairData.customer_phone);

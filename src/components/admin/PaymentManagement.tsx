@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { TableShimmer, StatsCardShimmer } from '@/components/ui/Shimmer';
 import { supabase } from '@/integrations/supabase/client';
+import { storageTrackingService, DATA_OPERATION_SOURCES } from '@/services/storageTrackingService';
 import { Plus, Search, CreditCard, ArrowUpRight, ArrowDownLeft, DollarSign, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -209,11 +210,30 @@ export default function PaymentManagement() {
         cheque_date: formData.cheque_date || null
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('payments')
-        .insert([paymentData]);
+        .insert([paymentData])
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Track payment creation
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'create',
+        table_name: 'payments',
+        record_id: data.id,
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_PAYMENT_CREATE,
+        metadata: {
+          payment_number: paymentData.payment_number,
+          payment_type: formData.payment_type,
+          reference_type: formData.reference_type,
+          amount: formData.amount,
+          payment_method: formData.payment_method,
+          customer_id: formData.customer_id,
+          supplier_id: formData.supplier_id
+        }
+      });
 
       // Update the reference record's payment status
       if (formData.reference_type === 'order') {
@@ -225,6 +245,21 @@ export default function PaymentManagement() {
             .from('orders')
             .update({ payment_status: newStatus })
             .eq('id', formData.reference_id);
+          
+          // Track order payment status update
+          await storageTrackingService.trackDataOperation({
+            operation_type: 'update',
+            table_name: 'orders',
+            record_id: formData.reference_id,
+            operation_source: DATA_OPERATION_SOURCES.ADMIN_PAYMENT_CREATE,
+            metadata: {
+              order_number: order.order_number,
+              old_payment_status: order.payment_status,
+              new_payment_status: newStatus,
+              payment_amount: formData.amount,
+              operation: 'payment_status_update'
+            }
+          });
         }
       } else if (formData.reference_type === 'purchase_invoice') {
         // Update purchase invoice payment status

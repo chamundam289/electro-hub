@@ -11,6 +11,7 @@ import { DataPagination } from '@/components/ui/data-pagination';
 import { TableShimmer, StatsCardShimmer } from '@/components/ui/Shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
+import { storageTrackingService, DATA_OPERATION_SOURCES } from '@/services/storageTrackingService';
 import { Plus, Edit, Trash2, Search, Phone, Mail, MapPin, User } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -94,16 +95,49 @@ export default function CustomerManagement() {
           .eq('id', editingCustomer.id);
 
         if (error) throw error;
+        
+        // Track customer update
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'update',
+          table_name: 'customers',
+          record_id: editingCustomer.id,
+          operation_source: DATA_OPERATION_SOURCES.ADMIN_CUSTOMER_UPDATE,
+          metadata: {
+            customer_name: formData.name,
+            customer_type: formData.customer_type,
+            credit_limit: formData.credit_limit,
+            updated_fields: Object.keys(formData)
+          }
+        });
+        
         toast.success('Customer updated successfully');
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('customers')
           .insert([{
             ...formData,
             outstanding_balance: 0
-          }]);
+          }])
+          .select()
+          .single();
 
         if (error) throw error;
+        
+        // Track customer creation
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'create',
+          table_name: 'customers',
+          record_id: data.id,
+          operation_source: DATA_OPERATION_SOURCES.ADMIN_CUSTOMER_CREATE,
+          metadata: {
+            customer_name: formData.name,
+            customer_type: formData.customer_type,
+            credit_limit: formData.credit_limit,
+            has_email: !!formData.email,
+            has_phone: !!formData.phone
+          }
+        });
+        
         toast.success('Customer created successfully');
       }
 
@@ -140,12 +174,27 @@ export default function CustomerManagement() {
     if (!confirm('Are you sure you want to delete this customer?')) return;
 
     try {
+      const customer = customers.find(c => c.id === id);
+      
       const { error } = await supabase
         .from('customers')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+      
+      // Track customer deletion
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'delete',
+        table_name: 'customers',
+        record_id: id,
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_CUSTOMER_DELETE,
+        metadata: {
+          customer_name: customer?.name || 'Unknown',
+          customer_type: customer?.customer_type || 'Unknown'
+        }
+      });
+      
       toast.success('Customer deleted successfully');
       fetchCustomers();
     } catch (error) {

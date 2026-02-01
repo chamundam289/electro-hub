@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { storageTrackingService, UPLOAD_SOURCES, type StorageTrackingData } from '@/services/storageTrackingService';
 
 interface ProductImage {
   id?: string;
@@ -35,6 +36,8 @@ interface MultipleImageUploadProps {
   className?: string;
   maxSize?: number; // in MB
   allowedTypes?: string[];
+  uploadSource?: string; // New prop for tracking
+  metadata?: Record<string, any>; // Additional metadata for tracking
 }
 
 export function MultipleImageUpload({ 
@@ -45,7 +48,9 @@ export function MultipleImageUpload({
   folder = 'products',
   className = '',
   maxSize = 5,
-  allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+  allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+  uploadSource = UPLOAD_SOURCES.PRODUCT_GALLERY, // Default to product gallery
+  metadata = {}
 }: MultipleImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -53,10 +58,7 @@ export function MultipleImageUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generateFileName = (originalName: string): string => {
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 15);
-    const fileExtension = originalName.split('.').pop()?.toLowerCase();
-    return `${folder}/${timestamp}-${randomString}.${fileExtension}`;
+    return storageTrackingService.generateFileName(originalName, uploadSource);
   };
 
   const validateFile = (file: File): boolean => {
@@ -76,9 +78,10 @@ export function MultipleImageUpload({
   const uploadToSupabase = async (file: File): Promise<string | null> => {
     try {
       const fileName = generateFileName(file.name);
+      const bucketName = storageTrackingService.getBucketName(uploadSource);
       
       const { data, error } = await supabase.storage
-        .from('product-images')
+        .from(bucketName)
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false
@@ -87,8 +90,26 @@ export function MultipleImageUpload({
       if (error) throw error;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
+        .from(bucketName)
         .getPublicUrl(fileName);
+
+      // Track the upload for storage management
+      const trackingData: StorageTrackingData = {
+        file_name: fileName,
+        bucket_name: bucketName,
+        file_size_bytes: file.size,
+        file_type: file.type,
+        upload_source: uploadSource,
+        metadata: {
+          ...metadata,
+          original_name: file.name,
+          folder: folder,
+          public_url: publicUrl,
+          product_id: productId
+        }
+      };
+
+      await storageTrackingService.trackUpload(trackingData);
 
       return publicUrl;
     } catch (error: any) {

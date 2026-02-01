@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataPagination } from '@/components/ui/data-pagination';
 import { MultipleImageUpload } from '@/components/ui/MultipleImageUpload';
+import { UPLOAD_SOURCES } from '@/services/storageTrackingService';
 import { TableShimmer } from '@/components/ui/Shimmer';
 import { usePagination } from '@/hooks/usePagination';
 import { useProductImages } from '@/hooks/useProductImages';
@@ -786,6 +787,12 @@ export default function ProductManagement() {
                   onImagesChange={setProductImages}
                   maxImages={10}
                   folder="products"
+                  uploadSource={UPLOAD_SOURCES.PRODUCT_GALLERY}
+                  metadata={{
+                    module: 'product_management',
+                    product_id: editingProduct?.id,
+                    product_name: editingProduct?.name
+                  }}
                   maxSize={5}
                   allowedTypes={['image/jpeg', 'image/jpg', 'image/png', 'image/webp']}
                 />

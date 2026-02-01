@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { storageTrackingService, DATA_OPERATION_SOURCES } from '@/services/storageTrackingService';
 
 export interface OrderItem {
   id: string;
@@ -14,8 +15,9 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
-  order_number: string;
+  order_number?: string;
   invoice_number?: string;
+  customer_id?: string;
   customer_name: string;
   customer_phone: string;
   shipping_name?: string;
@@ -23,12 +25,17 @@ export interface Order {
   shipping_city?: string;
   shipping_zipcode?: string;
   subtotal: number;
+  discount_amount?: number;
+  tax_amount?: number;
   total_amount: number;
   status: string;
   payment_method?: string;
+  payment_status?: string;
   estimated_delivery?: string;
   notes?: string;
+  order_source?: string;
   created_at: string;
+  updated_at?: string;
   order_items: OrderItem[];
 }
 
@@ -109,7 +116,7 @@ export const useOrders = () => {
       }
 
       // Generate order number
-      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
       
       // Calculate estimated delivery (2-4 days from now)
       const estimatedDelivery = new Date();
@@ -142,6 +149,23 @@ export const useOrders = () => {
         throw new Error('Failed to create order');
       }
 
+      // Track user-side order creation
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'create',
+        table_name: 'orders',
+        record_id: order.id,
+        operation_source: DATA_OPERATION_SOURCES.USER_ORDER_CREATE,
+        operated_by: user.id,
+        metadata: {
+          customer_name: order.customer_name,
+          total_amount: order.total_amount,
+          payment_method: order.payment_method,
+          order_source: 'ecommerce',
+          items_count: orderData.items.length,
+          user_email: user.email
+        }
+      });
+
       // Create order items
       const orderItems = orderData.items.map(item => ({
         order_id: order.id,
@@ -161,6 +185,24 @@ export const useOrders = () => {
         // Try to delete the order if items creation failed
         await supabase.from('orders').delete().eq('id', order.id);
         throw new Error('Failed to create order items');
+      }
+
+      // Track user-side order items creation
+      for (const item of orderItems) {
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'create',
+          table_name: 'order_items',
+          record_id: `${order.id}-${item.product_id}`,
+          operation_source: DATA_OPERATION_SOURCES.USER_ORDER_CREATE,
+          operated_by: user.id,
+          metadata: {
+            order_id: order.id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            line_total: item.line_total,
+            user_email: user.email
+          }
+        });
       }
 
       console.log('Created order items for order:', order.id);
@@ -189,6 +231,20 @@ export const useOrders = () => {
         console.error('Error updating order status:', error);
         throw new Error('Failed to update order status');
       }
+
+      // Track user-side order status update
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'update',
+        table_name: 'orders',
+        record_id: orderId,
+        operation_source: DATA_OPERATION_SOURCES.USER_ORDER_UPDATE,
+        operated_by: user?.id,
+        metadata: {
+          new_status: status,
+          operation: 'status_update',
+          user_email: user?.email
+        }
+      });
 
       // Refresh orders list
       await fetchOrders();

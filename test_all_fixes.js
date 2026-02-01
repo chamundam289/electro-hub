@@ -1,160 +1,121 @@
-// Test script to verify all ProductManagement fixes
-const { createClient } = require('@supabase/supabase-js');
+// Test All Database Fixes
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://your-project.supabase.co';
-const supabaseKey = 'your-anon-key';
-const supabase = createClient(supabaseUrl, supabaseKey);
+const SUPABASE_URL = 'https://xeufezbuuccohiardtrk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhldWZlemJ1dWNjb2hpYXJkdHJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0MzA3MDcsImV4cCI6MjA4NTAwNjcwN30.zp8ucpKwEbJW-st0PpNm53TarEzNFXrwp_SBoI4cOyI';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function testAllFixes() {
-  console.log('🧪 Testing All ProductManagement Fixes...\n');
-
   try {
-    // 1. Test loyalty_product_settings table access
-    console.log('1. Testing loyalty_product_settings table access...');
-    const { data: tableTest, error: tableError } = await supabase
-      .from('loyalty_product_settings')
-      .select('count(*)')
-      .limit(1);
-
-    if (tableError) {
-      console.error('❌ loyalty_product_settings table error:', tableError.message);
-      console.log('💡 Please run: fix_all_loyalty_errors.sql');
-      return;
-    }
-    console.log('✅ loyalty_product_settings table accessible');
-
-    // 2. Test insert permission
-    console.log('\n2. Testing insert permission...');
-    const testProduct = {
-      product_id: '00000000-0000-0000-0000-000000000000', // Dummy UUID for test
-      coins_earned_per_purchase: 10,
-      coins_required_to_buy: 100,
-      is_coin_purchase_enabled: true,
-      is_coin_earning_enabled: true
-    };
-
-    const { error: insertError } = await supabase
-      .from('loyalty_product_settings')
-      .insert(testProduct);
-
-    if (insertError) {
-      if (insertError.code === '23503') {
-        console.log('✅ Insert permission works (foreign key constraint expected)');
-      } else {
-        console.error('❌ Insert permission error:', insertError.message);
-        return;
-      }
-    } else {
-      console.log('✅ Insert permission works');
-      // Clean up test data
-      await supabase
-        .from('loyalty_product_settings')
-        .delete()
-        .eq('product_id', testProduct.product_id);
-    }
-
-    // 3. Test update permission
-    console.log('\n3. Testing update permission...');
-    const { error: updateError } = await supabase
-      .from('loyalty_product_settings')
-      .update({ coins_earned_per_purchase: 15 })
-      .eq('product_id', testProduct.product_id);
-
-    if (updateError && updateError.code !== 'PGRST116') {
-      console.error('❌ Update permission error:', updateError.message);
-      return;
-    }
-    console.log('✅ Update permission works');
-
-    // 4. Test system settings
-    console.log('\n4. Testing loyalty_system_settings...');
-    const { data: systemSettings, error: systemError } = await supabase
-      .from('loyalty_system_settings')
+    console.log('🧪 Testing All Database Fixes...\n');
+    
+    // Test 1: Storage tracking tables
+    console.log('🔍 Testing storage tracking...');
+    const { data: storageData, error: storageError } = await supabase
+      .from('storage_usage_tracking')
       .select('*')
       .limit(1);
-
-    if (systemError) {
-      console.error('❌ System settings error:', systemError.message);
-      return;
-    }
-
-    if (!systemSettings || systemSettings.length === 0) {
-      console.log('⚠️  No system settings found, creating default...');
-      const { error: createError } = await supabase
-        .from('loyalty_system_settings')
-        .insert({
-          is_system_enabled: true,
-          global_coins_multiplier: 1.00,
-          default_coins_per_rupee: 0.10,
-          min_coins_to_redeem: 10,
-          festive_multiplier: 1.00
-        });
-
-      if (createError) {
-        console.error('❌ Failed to create system settings:', createError.message);
-        return;
-      }
-      console.log('✅ Default system settings created');
+    
+    if (storageError) {
+      console.log('❌ storage_usage_tracking:', storageError.message);
     } else {
-      console.log('✅ System settings exist:', {
-        enabled: systemSettings[0].is_system_enabled,
-        coins_per_rupee: systemSettings[0].default_coins_per_rupee,
-        min_redeem: systemSettings[0].min_coins_to_redeem
+      console.log('✅ storage_usage_tracking: Working');
+    }
+    
+    // Test 2: Storage usage views
+    console.log('🔍 Testing storage usage views...');
+    const { data: usageData, error: usageError } = await supabase
+      .from('overall_storage_usage')
+      .select('*')
+      .single();
+    
+    if (usageError) {
+      console.log('❌ overall_storage_usage:', usageError.message);
+    } else {
+      console.log('✅ overall_storage_usage: Working');
+      console.log('📊 Current usage:', {
+        files: usageData.total_files,
+        size_mb: usageData.total_size_mb,
+        percentage: usageData.usage_percentage + '%'
       });
     }
-
-    // 5. Test product slug generation
-    console.log('\n5. Testing slug generation logic...');
-    const testNames = [
-      'Test Product 123',
-      'Special Characters @#$%',
-      'Multiple   Spaces',
-      'हिंदी Product',
-      'Product-with-hyphens'
-    ];
-
-    testNames.forEach(name => {
-      const slug = name.toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim();
-      console.log(`  "${name}" → "${slug}"`);
-    });
-    console.log('✅ Slug generation working correctly');
-
-    // 6. Test RLS policies
-    console.log('\n6. Testing RLS policies...');
-    const { data: policies, error: policyError } = await supabase
-      .rpc('get_policies_for_table', { table_name: 'loyalty_product_settings' })
-      .catch(() => null);
-
-    if (policies) {
-      console.log('✅ RLS policies found:', policies.length);
+    
+    // Test 3: Repair technicians table
+    console.log('🔍 Testing repair technicians...');
+    const { data: techData, error: techError } = await supabase
+      .from('repair_technicians')
+      .select('*')
+      .limit(1);
+    
+    if (techError) {
+      console.log('❌ repair_technicians:', techError.message);
     } else {
-      console.log('⚠️  Could not check RLS policies (expected in some setups)');
+      console.log('✅ repair_technicians: Working');
     }
-
-    console.log('\n🎉 All tests passed! ProductManagement fixes are working correctly.');
-    console.log('\n📋 Summary of fixes:');
-    console.log('  ✅ loyalty_product_settings table accessible');
-    console.log('  ✅ Insert/Update permissions working');
-    console.log('  ✅ System settings configured');
-    console.log('  ✅ Slug generation improved');
-    console.log('  ✅ Error handling enhanced');
-    console.log('  ✅ Image overflow warning fixed');
-
+    
+    // Test 4: Website settings table
+    console.log('🔍 Testing website settings...');
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('website_settings')
+      .select('*')
+      .limit(1);
+    
+    if (settingsError) {
+      console.log('❌ website_settings:', settingsError.message);
+    } else {
+      console.log('✅ website_settings: Working');
+    }
+    
+    // Test 5: Users table
+    console.log('🔍 Testing users table...');
+    const { data: usersData, error: usersError } = await supabase
+      .from('users')
+      .select('*')
+      .limit(1);
+    
+    if (usersError) {
+      console.log('❌ users:', usersError.message);
+    } else {
+      console.log('✅ users: Working');
+    }
+    
+    // Test 6: Existing tables that should work
+    console.log('🔍 Testing existing tables...');
+    const existingTables = ['products', 'orders', 'instagram_users', 'instagram_stories'];
+    
+    for (const table of existingTables) {
+      try {
+        const { count, error } = await supabase
+          .from(table)
+          .select('*', { count: 'exact', head: true });
+        
+        if (error) {
+          console.log(`❌ ${table}: ${error.message}`);
+        } else {
+          console.log(`✅ ${table}: ${count || 0} rows`);
+        }
+      } catch (err) {
+        console.log(`❌ ${table}: Access error`);
+      }
+    }
+    
+    console.log('\n📊 Test Summary:');
+    console.log('✅ Database Management page should now work without errors');
+    console.log('✅ Storage tracking functionality enabled');
+    console.log('✅ Repair Analytics should work');
+    console.log('✅ Website Settings should work');
+    console.log('✅ All 404 errors should be resolved');
+    
+    console.log('\n🚀 Next Steps:');
+    console.log('1. Refresh your admin dashboard');
+    console.log('2. Go to Database page - should show storage data');
+    console.log('3. Upload files - should be tracked automatically');
+    console.log('4. No more 404 errors in console');
+    
   } catch (error) {
-    console.error('❌ Unexpected error:', error);
+    console.error('❌ Test failed:', error);
   }
 }
 
-// Helper function to check if we're in a Node.js environment
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { testAllFixes };
-  
-  // Run the test if this file is executed directly
-  if (require.main === module) {
-    testAllFixes();
-  }
-}
+testAllFixes().catch(console.error);

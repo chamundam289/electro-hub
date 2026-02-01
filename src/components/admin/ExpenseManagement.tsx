@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { TableShimmer, StatsCardShimmer } from '@/components/ui/Shimmer';
 import { supabase } from '@/integrations/supabase/client';
+import { storageTrackingService, DATA_OPERATION_SOURCES } from '@/services/storageTrackingService';
 import { Plus, Edit, Trash2, Search, Receipt, DollarSign, Calendar, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -154,13 +155,48 @@ export default function ExpenseManagement() {
           .eq('id', editingExpense.id);
 
         if (error) throw error;
+        
+        // Track expense update
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'update',
+          table_name: 'expenses',
+          record_id: editingExpense.id,
+          operation_source: DATA_OPERATION_SOURCES.ADMIN_EXPENSE_UPDATE,
+          metadata: {
+            expense_title: formData.title,
+            amount: expenseData.amount,
+            total_amount: expenseData.total_amount,
+            payment_method: formData.payment_method,
+            payment_status: formData.payment_status
+          }
+        });
+        
         toast.success('Expense updated successfully');
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('expenses')
-          .insert([expenseData]);
+          .insert([expenseData])
+          .select()
+          .single();
 
         if (error) throw error;
+        
+        // Track expense creation
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'create',
+          table_name: 'expenses',
+          record_id: data.id,
+          operation_source: DATA_OPERATION_SOURCES.ADMIN_EXPENSE_CREATE,
+          metadata: {
+            expense_title: formData.title,
+            amount: expenseData.amount,
+            total_amount: expenseData.total_amount,
+            payment_method: formData.payment_method,
+            payment_status: formData.payment_status,
+            has_receipt: !!formData.receipt_url
+          }
+        });
+        
         toast.success('Expense created successfully');
       }
 
@@ -196,12 +232,28 @@ export default function ExpenseManagement() {
     if (!confirm('Are you sure you want to delete this expense?')) return;
 
     try {
+      const expense = expenses.find(e => e.id === id);
+      
       const { error } = await supabase
         .from('expenses')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+      
+      // Track expense deletion
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'delete',
+        table_name: 'expenses',
+        record_id: id,
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_EXPENSE_DELETE,
+        metadata: {
+          expense_title: expense?.title || 'Unknown',
+          amount: expense?.amount || 0,
+          total_amount: expense?.total_amount || 0
+        }
+      });
+      
       toast.success('Expense deleted successfully');
       fetchExpenses();
     } catch (error) {

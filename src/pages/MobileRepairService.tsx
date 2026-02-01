@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import { storageTrackingService, DATA_OPERATION_SOURCES } from '@/services/storageTrackingService';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   Smartphone, 
@@ -146,6 +147,22 @@ export default function MobileRepairService() {
 
       if (quotationError) throw quotationError;
 
+      // Track quotation response
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'update',
+        table_name: 'repair_quotations',
+        record_id: quotationId,
+        operation_source: DATA_OPERATION_SOURCES.USER_MOBILE_REPAIR_REQUEST,
+        operated_by: user?.id,
+        metadata: {
+          quotation_id: quotationId,
+          action: action,
+          customer_response: action === 'approve' ? 'approved' : 'rejected',
+          repair_request_id: selectedQuotation.repair_request_id,
+          user_email: user?.email
+        }
+      });
+
       const { error: requestError } = await (supabase as any)
         .from('repair_requests')
         .update({
@@ -156,15 +173,50 @@ export default function MobileRepairService() {
 
       if (requestError) throw requestError;
 
+      // Track repair request status update
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'update',
+        table_name: 'repair_requests',
+        record_id: selectedQuotation.repair_request_id,
+        operation_source: DATA_OPERATION_SOURCES.USER_MOBILE_REPAIR_REQUEST,
+        operated_by: user?.id,
+        metadata: {
+          repair_request_id: selectedQuotation.repair_request_id,
+          old_status: 'quotation_sent',
+          new_status: action === 'approve' ? 'quotation_approved' : 'quotation_rejected',
+          quotation_action: action,
+          user_email: user?.email
+        }
+      });
+
       // Log status change
-      await (supabase as any)
+      const { data: statusLog, error: logError } = await (supabase as any)
         .from('repair_status_logs')
         .insert({
           repair_request_id: selectedQuotation.repair_request_id,
           old_status: 'quotation_sent',
           new_status: action === 'approve' ? 'quotation_approved' : 'quotation_rejected',
           change_reason: `Customer ${action}ed the quotation`
+        })
+        .select()
+        .single();
+
+      if (!logError && statusLog) {
+        // Track status log creation
+        await storageTrackingService.trackDataOperation({
+          operation_type: 'create',
+          table_name: 'repair_status_logs',
+          record_id: statusLog.id,
+          operation_source: DATA_OPERATION_SOURCES.USER_MOBILE_REPAIR_REQUEST,
+          operated_by: user?.id,
+          metadata: {
+            repair_request_id: selectedQuotation.repair_request_id,
+            status_change: `${action}ed quotation`,
+            change_reason: `Customer ${action}ed the quotation`,
+            user_email: user?.email
+          }
         });
+      }
 
       toast.success(`Quotation ${action}ed successfully!`);
       setShowQuotationModal(false);

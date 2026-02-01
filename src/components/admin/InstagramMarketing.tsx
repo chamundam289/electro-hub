@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageUpload } from '@/components/ui/ImageUpload';
+import { UPLOAD_SOURCES } from '@/services/storageTrackingService';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Instagram, 
@@ -1482,6 +1483,12 @@ export default function InstagramMarketing() {
                         }}
                         currentImage={newStoryMedia.media_url}
                         folder="instagram-story-media"
+                        uploadSource={UPLOAD_SOURCES.INSTAGRAM_STORY_MEDIA}
+                        metadata={{
+                          module: 'instagram_marketing',
+                          story_title: newStoryMedia.title,
+                          story_description: newStoryMedia.description
+                        }}
                         maxSize={50} // 50MB for videos
                         allowedTypes={[
                           'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',

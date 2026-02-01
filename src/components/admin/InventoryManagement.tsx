@@ -10,6 +10,7 @@ import { TableShimmer, StatsCardShimmer } from '@/components/ui/Shimmer';
 import { DataPagination } from '@/components/ui/data-pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
+import { storageTrackingService, DATA_OPERATION_SOURCES } from '@/services/storageTrackingService';
 import { Warehouse, AlertTriangle, TrendingUp, TrendingDown, Plus, Minus, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -116,8 +117,24 @@ export default function InventoryManagement() {
 
       if (updateError) throw updateError;
 
+      // Track inventory update
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'update',
+        table_name: 'products',
+        record_id: selectedProduct.id,
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_INVENTORY_UPDATE,
+        metadata: {
+          product_name: selectedProduct.name,
+          product_sku: selectedProduct.sku,
+          old_stock: selectedProduct.stock_quantity,
+          new_stock: newStockQuantity,
+          quantity_change: quantityChange,
+          adjustment_type: adjustmentType
+        }
+      });
+
       // Create inventory transaction
-      const { error: transactionError } = await supabase
+      const { data: transactionData, error: transactionError } = await supabase
         .from('inventory_transactions')
         .insert({
           product_id: selectedProduct.id,
@@ -125,9 +142,27 @@ export default function InventoryManagement() {
           quantity: quantityChange,
           reference_type: 'adjustment',
           notes: adjustmentNotes || `Stock ${adjustmentType === 'add' ? 'added' : 'removed'} manually`
-        });
+        })
+        .select()
+        .single();
 
       if (transactionError) throw transactionError;
+
+      // Track inventory transaction
+      await storageTrackingService.trackDataOperation({
+        operation_type: 'create',
+        table_name: 'inventory_transactions',
+        record_id: transactionData.id,
+        operation_source: DATA_OPERATION_SOURCES.ADMIN_INVENTORY_TRANSACTION,
+        metadata: {
+          product_name: selectedProduct.name,
+          product_sku: selectedProduct.sku,
+          transaction_type: 'adjustment',
+          quantity_change: quantityChange,
+          adjustment_type: adjustmentType,
+          notes: adjustmentNotes || `Stock ${adjustmentType === 'add' ? 'added' : 'removed'} manually`
+        }
+      });
 
       toast.success('Stock adjusted successfully');
       setIsAdjustmentDialogOpen(false);
